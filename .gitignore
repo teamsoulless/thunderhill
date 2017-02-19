@@ -87,3 +87,10 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+#ros
+.catkin*
+.rosrepo
+devel
+setup.bash
+logs
