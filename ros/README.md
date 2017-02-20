@@ -123,3 +123,8 @@ Rviz config is stored in `rviz-configs/velodyne-cloud.rviz`.
 
 Intensity colored point cloud data in Rviz:
 ![Velodyne data](images/velodyne-rziv.png)
+
+**Youtube video:**
+
+[![Youtube video - Velodyne HDL32 data from Thunderhill west](http://img.youtube.com/vi/HHnDS5O7Pd4/0.jpg)](http://www.youtube.com/watch?v=HHnDS5O7Pd4 "Velodyne HDL32 data from Thunderhill west")
+
