@@ -4,7 +4,7 @@
 Please use install and use git lfs to clone the repository:
 
 ```
-git lfs clone https://github.com/kuasha/thunderhill.git
+git lfs clone --recursive https://github.com/kuasha/thunderhill.git
 ```
 
 ## Thunderhill West
