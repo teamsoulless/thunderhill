@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import matplotlib.pyplot as plt
+from operator import itemgetter
 from tqdm import tqdm
 import numpy as np
 import cv2
@@ -13,7 +14,10 @@ throttle_window=(277,520,690,691)
 steering_left_window=(540,654,686,687)
 steering_right_window=(656,735,686,687)
 brakes_window=(770,970,686,687)
-save_window=(0,-1,280,600)
+save_window=(0,1280,280,600)
+
+left_digit=(17,45,660,700)
+right_digit=(46,78,660,700)
 
 #csv arrays - zip to get rows
 throttle_csv=[]
@@ -24,6 +28,9 @@ filenames_csv=[]
 
 #show data?
 show=False
+
+font_recog = cv2.FONT_HERSHEY_PLAIN
+font = cv2.FONT_HERSHEY_SIMPLEX
 
 #output images dir
 img_dir='images'
@@ -40,6 +47,7 @@ def dataGen(cap):
     while(cap.isOpened()):
         ret, img = cap.read()
         if not img is None:
+            img_raw=img.copy()
             thr=img[throttle_window[2]:throttle_window[3],throttle_window[0]:throttle_window[1],0]
             thr[thr<=50]=0
             thr[thr>50]=255
@@ -68,8 +76,54 @@ def dataGen(cap):
             br[br>80]=255
             brakes=1.09*np.sum(br)/(255.0 * (brakes_window[1]-brakes_window[0]))
 
-            #TODO: implement speed reading
-            speed=0
+            font_weight=2
+
+            dgt_l=img[left_digit[2]:left_digit[3],left_digit[0]:left_digit[1],:]
+            dgt_l[dgt_l[:,:,0]<=200]=0
+            dgt_l[dgt_l[:,:,0]>200]=255
+            digits=[1000]*10
+            for d in range(10):
+                copy=dgt_l.copy()
+                render=np.zeros_like(copy)
+                cv2.putText(render,str(d),(-2,render.shape[0]-3), font_recog, 3.3,(255,255,255),font_weight,cv2.LINE_AA)
+                mask_and= cv2.bitwise_and(copy,render)
+                mask_sum= copy.copy()
+                mask_sum[render>100]=255
+                digits[d]= np.count_nonzero(mask_and[:,:,0]) / np.count_nonzero(mask_sum[:,:,0])
+
+
+            ld=max(enumerate(digits), key=itemgetter(1))[0]
+            # render=np.zeros_like(render)
+            # cv2.putText(render,str(ld),(-2,render.shape[0]-3), font_recog, 3.3,(255,255,255),font_weight,cv2.LINE_AA)
+            # cv2.imshow('dgt_l',np.concatenate((dgt_l,render),axis=1))
+            # cv2.waitKey(1)
+
+
+            dgt_r=img.copy()[right_digit[2]:right_digit[3],right_digit[0]:right_digit[1],:]
+            dgt_r[dgt_r[:,:,0]<=200]=0
+            dgt_r[dgt_r[:,:,0]>200]=255
+            digits=[1000]*10
+            for d in range(10):
+                copy=dgt_r.copy()
+                render=np.zeros_like(copy)
+                cv2.putText(render,str(d),(-1,render.shape[0]-4), font_recog, 3.25,(255,255,255),font_weight,cv2.LINE_AA)
+                mask_and= cv2.bitwise_and(copy,render)
+                mask_sum= copy.copy()
+                mask_sum[render>100]=255
+                digits[d]=np.count_nonzero(mask_and[:,:,0]) / np.count_nonzero(mask_sum[:,:,0])
+                # cv2.imshow('dgt_r',np.concatenate((dgt_r,render,mask_and,mask_sum),axis=1))
+                # cv2.waitKey(100)
+
+
+            rd=max(enumerate(digits), key=itemgetter(1))[0]
+
+            speed=ld*10+rd
+
+            # render=np.zeros_like(render)
+            # render=np.concatenate((render,render),axis=1)
+            # cv2.putText(render,str(speed),(-1,render.shape[0]-4), font_recog, 3.25,(0,0,255),font_weight,cv2.LINE_AA)
+            # cv2.imshow('dgt_r',np.concatenate((dgt_l,dgt_r,render),axis=1))
+            # cv2.waitKey(1)
 
             #Save img
             fname=img_dir+'/center_%08d.jpg'%len(filenames_csv)
@@ -82,17 +136,16 @@ def dataGen(cap):
             speed_csv.append(speed)
             filenames_csv.append(fname)
 
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(img,'%.0f'%(100*throttle_value),(throttle_window[0]+100,718), font, 1,(0,0,255),2,cv2.LINE_AA)
-            cv2.putText(img,'%.0f'%(100*steering),(steering_right_window[0],718), font, 1,(0,0,255),2,cv2.LINE_AA)
-            cv2.putText(img,'%.0f'%(100*brakes),(brakes_window[0],718), font, 1,(0,0,255),2,cv2.LINE_AA)
             if show:
-                cv2.imshow('img',img)
+                cv2.putText(img_raw,'%.0f'%(100*throttle_value),(throttle_window[0]+100,718), font, 1,(0,0,255),2,cv2.LINE_AA)
+                cv2.putText(img_raw,'%.0f'%(100*steering),(steering_left_window[0],718), font, 1,(0,0,255),2,cv2.LINE_AA)
+                cv2.putText(img_raw,'%.0f'%(100*brakes),(brakes_window[0],718), font, 1,(0,0,255),2,cv2.LINE_AA)
+                cv2.putText(img_raw,str(speed),(25,718), font, 1,(0,0,255),2,cv2.LINE_AA)
+                cv2.imshow('img',img_raw)
                 cv2.waitKey(1)
 
             row=[fname,'','',steering,throttle_value,brakes,speed]
             yield row
-
 
 def main():
     fname = sys.argv[1]
