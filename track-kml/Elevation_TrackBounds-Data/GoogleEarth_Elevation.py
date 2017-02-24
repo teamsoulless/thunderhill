@@ -42,9 +42,9 @@ def getElevation(data,key):
                 nPts = min(numPts, np.mod(np.size(data,0),numPts))
             else:
                 nPts = numPts
-                for c1 in range(0,nPts):
-                    str_pts = str_pts + "|" + str(data[c*numPts+c1,1]) + "," + str(data[c*numPts+c1,0])
-                elev = callElevationAPI(str_pts,key)
+            for c1 in range(1,nPts):
+                str_pts = str_pts + "|" + str(data[c*numPts+c1,1]) + "," + str(data[c*numPts+c1,0])
+            elev = callElevationAPI(str_pts,key)
             elevation = elevation + elev
     return elevation
 
@@ -79,12 +79,13 @@ def compareElevation(filename, key):
     k.from_string(doc)
     features = list(k.features())
     
+    Myplaces = list(features[0].features())
+    thunderhill = list(Myplaces[0].features())
     gps = []
-    for i in features[0].features():
+    for i in thunderhill[0].features():
         gps.append(nestedKMLSearch(i))
 
     gps_1 = dict()
-    url = []
     for i in range(len(gps)):
         for j in gps[i].keys():
             gps_1[j] = gps[i][j]
@@ -97,8 +98,31 @@ def compareElevation(filename, key):
                 plt.legend(["Google Elevation API","PolySync"])
                 plt.show()
 
+def getCompleteGPSdata(filename, key):
+    doc = file(filename).read()
+    k = kml.KML()
+    k.from_string(doc)
+    features = list(k.features())
+    
+    Myplaces = list(features[0].features())
+    thunderhill = list(Myplaces[0].features())
+    gps = []
+    for i in thunderhill[0].features():
+        gps.append(nestedKMLSearch(i))
+
+    gps_1 = dict()
+    url = []
+    for i in range(len(gps)):
+        for j in gps[i].keys():
+            gps_1[j] = gps[i][j]
+            if (np.max(gps_1[j][:,2]) == 0):
+                elevation = getElevation(gps_1[j],key)
+                gps_1[j][:,2] = np.array(elevation).reshape(np.size(gps_1[j],0),)
+    return gps_1
+
 #if __name__ == '__main__':
-#    key = <<your own key>>
+#    key = ""
 #    cwd = os.path.dirname(os.path.realpath(__file__))
 #    filename = os.path.join(cwd,"myplaces.kml")
-#    compareElevation(filename, key)
+##    compareElevation(filename, key)
+##    print getCompleteGPSdata(filename, key)
