@@ -5,3 +5,4 @@
 *.jpg  filter=lfs diff=lfs merge=lfs binary
 *.tiff filter=lfs diff=lfs merge=lfs binary
 
+*.log filter=lfs diff=lfs merge=lfs -text
