@@ -118,6 +118,7 @@ def getCompleteGPSdata(filename, key):
             if (np.max(gps_1[j][:,2]) == 0):
                 elevation = getElevation(gps_1[j],key)
                 gps_1[j][:,2] = np.array(elevation).reshape(np.size(gps_1[j],0),)
+
     return gps_1
 
 #if __name__ == '__main__':
