@@ -6,7 +6,7 @@
 4. Activate license (***only do this once or you will use multiple licenses!***): <br/>
  `polysync-license-tool -a b5b3-eb9e-6f3c-4ff9-b0e5-dd22-d90a-f308`
 5. Create a symlink to the libcanlib.so <br/>
-`sudo ls –s /usr/local/polysync/vendor/lib/libcanlib.so /usr/local/polysync/vendor/lib/libcanlib.so.1`
+`sudo ln –s /usr/local/polysync/vendor/lib/libcanlib.so /usr/local/polysync/vendor/lib/libcanlib.so.1`
 
 
 ## Using sample data
