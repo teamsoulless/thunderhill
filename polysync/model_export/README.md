@@ -3,6 +3,7 @@
 This code is extended from ["Loading a TensorFlow graph with the C++ API"](https://medium.com/jim-fleming/loading-a-tensorflow-graph-with-the-c-api-4caaff88463f#.6dgk6x8d6)
 
 Requirements:
+
 1. [Install Bazel](https://bazel.build/versions/master/docs/install.html)
 2. [Clone Tensorflow repo](https://github.com/tensorflow/tensorflow): <br/>
 `git clone --recursive https://github.com/tensorflow/tensorflow`
