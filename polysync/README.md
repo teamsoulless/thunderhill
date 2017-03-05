@@ -26,7 +26,9 @@ Make sure that you can see a configuration for PolySync Kia Soul, close the conf
 
 ## Troubleshoot sample data
 Sample data may not replay immediately
+
 1. Make sure that there is enough disk space to import sample data
 2. "The system is in inconsistent state" error:
   - if appears immediately after opening studio, press Standby to resolve
   - if appears after an attempt to play the recorded session - no action needed, the error may be present, but the data will replay after some time
+  - may have to close the studio, stop the manager, restart the manager and reopen the studio to get the session to run
