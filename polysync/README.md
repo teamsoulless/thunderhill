@@ -11,7 +11,7 @@
 
 ## Using sample data
 
-1. Download [PolySync dataset](https://www.dropbox.com/s/tt055gyb9of02uj/polysync-self-racing-cars-logfile.tar.gz?dl=0)
+1. Download [PolySync dataset](https://www.dropbox.com/s/exjh3y0d9q4t5a3/polysync-self-racing-cars-2016-dataset.tar.gz?dl=0)
 2. Download [psync.sdf file](https://drive.google.com/open?id=0B0ZFAnBlExjMSXVGa0xJdTNXaGc)
 3. Go to downloaded dataset folder (_polysync-self-racing-cars-data/1464470620356308_) and replace existing psync.sdf file with the one from step 2
 4. Go to _~/.local/share/polysync/config_ folder and replace existing psync.sdf file with the one from step 2
