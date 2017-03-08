@@ -111,10 +111,11 @@ public:
         {
             FILE *stream;
             DDS_unsigned_long_long ts = incomingMessage->getHeaderTimestamp();
-            std::string imageName = "IMG/" + std::to_string(ts) + ".jpeg";
+            std::string imageName = "IMG/" + std::to_string(incomingMessage->getSensorDescriptor().getId()) + '-' + std::to_string(ts) + ".jpeg";
             const char * c = imageName.c_str();
-
             if((stream = freopen(c, "w", stdout)) == NULL) {
+              fprintf(stderr,"Can't create file: %s\nTry:\n\tmkdir IMG\n\n", imageName.c_str());
+              fflush(stderr);
                 exit(-1);
             }
 
