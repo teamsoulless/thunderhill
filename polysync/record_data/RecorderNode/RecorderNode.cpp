@@ -31,15 +31,16 @@
  *
  */
 
- #include <iostream>
- #include <PolySyncNode.hpp>
- #include <PolySyncDataModel.hpp>
- #include <fstream>
- #include <stdio.h>
- #include <string>
- #include <math.h>
+#include <iostream>
+#include <PolySyncNode.hpp>
+#include <PolySyncDataModel.hpp>
+#include <fstream>
+#include <stdio.h>
+#include <string>
+#include <math.h>
+#include <map>
 
- #define PI 3.14159265
+#define PI 3.14159265
 
 using namespace std;
 
@@ -54,10 +55,87 @@ using namespace std;
  */
 class RecorderNode : public polysync::Node
 {
+
 private:
     ps_msg_type _messageType;
     ps_msg_type _imageType;
-    ofstream file = ofstream("platform.csv", std::ios_base::app | std::ofstream::out);
+    ps_msg_type _throttle;
+    ps_msg_type _brake;
+    ps_msg_type _steer;
+    ofstream platformFile = ofstream("platform.csv", std::ios_base::app | std::ofstream::out);
+    ofstream commonCSV = ofstream("driving_data.csv", std::ios_base::app | std::ofstream::out);
+
+    char keys[4] = {'B', 'S', 'T', 'I'};
+
+    std::map <char, std::shared_ptr< polysync::Message >> cache;
+
+    void cacheMessage(std::shared_ptr< polysync::Message > message, char key)
+    {
+        //test if map is full
+        if (cache.size() < 4) {
+            //find type
+            std::map<char, std::shared_ptr< polysync::Message >>::iterator it = cache.find(key);
+            if (it != cache.end()) {
+                //already there
+            } else {
+                //add
+                cache.insert ( std::pair<char,std::shared_ptr< polysync::Message >>(key, message) );
+            }
+        } else {
+            //map is full, can write message and empty map
+            std::string csvString = "";
+            std::string tempArray[5] = {"0", "0", "0", "0"};
+            for (char key : keys) {
+                switch (key) {
+                    case 'B':
+                        //this fires an error
+                        if (std::shared_ptr <PlatformBrakeCommandMessage> incoming = getSubclass< PlatformBrakeCommandMessage >( message )) {
+                            insertValue(tempArray, 1, std::to_string(incoming->getBrakeCommand()), 5);
+                        };
+                        break;
+                    case 'S':
+                        std::shared_ptr <PlatformSteeringCommandMessage> message = getSubclass< PlatformSteeringCommandMessage >( message );
+                        insertValue(tempArray, 2, std::to_string(message->getSteeringWheelAngle()), 5);
+                        break;
+                    case 'T':
+                        std::shared_ptr <PlatformThrottleCommandMessage> message = getSubclass< PlatformThrottleCommandMessage >( message );
+                        insertValue(tempArray, 3, std::to_string(message->getThrottleCommand()), 5);
+                        break;
+                    case 'I':
+                        std::shared_ptr <ImageDataMessage> message = getSubclass< ImageDataMessage >( message );
+                        insertValue(tempArray, 0, std::to_string(message->getHeaderTimestamp()), 5);
+                        break;
+                }
+            }
+        }
+    };
+
+    int* insertValue (int* originalArray, int positionToInsertAt, int ValueToInsert, int sizeOfOriginalArray)
+    {
+      // Create the new array - user must be told to delete it at some point
+        int* newArray = new int[sizeOfOriginalArray + 1];
+        for (int i=0; i<=sizeOfOriginalArray; ++i)
+          {
+            if (i < positionToInsertAt)  // All the elements before the one that must be inserted
+            {
+               newArray[i] = originalArray[i];
+            }
+
+            if (i == positionToInsertAt)  // The right place to insert the new element
+            {
+              newArray[i] = ValueToInsert;
+            }
+
+            if (i > positionToInsertAt)  // Now all the remaining elements
+            {
+              newArray[i] = originalArray[i-1];
+            }
+          }
+        return newArray;
+    }
+
+
+
 public:
     /**
      * @brief initStateEvent
@@ -72,10 +150,17 @@ public:
         _messageType = getMessageTypeByName( "ps_platform_motion_msg" );
         _imageType = getMessageTypeByName("ps_image_data_msg");
 
+        _brake = getMessageTypeByName("ps_platform_brake_command_msg");
+        _steer = getMessageTypeByName("ps_platform_steering_command_msg");
+        _throttle = getMessageTypeByName("ps_platform_throttle_command_msg");
+
         // Register as a listener for the message type that the publisher
         // is going to send.  Message types are defined in later tutorials.
         registerListener( _messageType );
         registerListener(_imageType);
+        registerListener(_brake);
+        registerListener(_throttle);
+        registerListener(_steer);
     }
 
     /**
@@ -104,24 +189,41 @@ public:
             std::array< DDS_double, 3 > vel = incomingMessage->getVelocity();
 
             std::string dataString = std::to_string(ts)+","+std::to_string(yaw) +","+std::to_string(heading)+","+std::to_string(vel[0])+","+std::to_string(vel[1])+","+std::to_string(vel[2])+"\n";
-            file << dataString;
+            platformFile << dataString;
         }
+
+        // if (std::shared_ptr <PlatformBrakeReportMessage> incoming = getSubclass<PlatformBrakeReportMessage>(message))
+        // {
+        //     DDS_unsigned_long_long ts = incomingMessage->getHeaderTimestamp();
+        //     DDS_float command = incomingMessage->getPedalCommand();
+        //     std::string dataString = std::to_string(ts)+","+std::to_string(command);
+        //     brakeFile << dataString;
+        // }
+
+        // if (std::shared_ptr <PlatformBrakeReportMessage> incoming = getSubclass<PlatformBrakeReportMessage>(message))
+        // {
+        //     DDS_unsigned_long_long ts = incomingMessage->getHeaderTimestamp();
+        //     DDS_float command = incomingMessage->getPedalCommand();
+        //     std::string dataString = std::to_string(ts)+","+std::to_string(command);
+        //     brakeFile << dataString;
+        // }
+
 
         if (std::shared_ptr < ImageDataMessage > incomingMessage = getSubclass < ImageDataMessage > (message))
         {
-            FILE *stream;
-            DDS_unsigned_long_long ts = incomingMessage->getHeaderTimestamp();
-            std::string imageName = "IMG/" + std::to_string(ts) + ".jpeg";
-            const char * c = imageName.c_str();
+            // FILE *stream;
+            // DDS_unsigned_long_long ts = incomingMessage->getHeaderTimestamp();
+            // std::string imageName = "IMG/" + std::to_string(ts) + ".jpeg";
+            // const char * c = imageName.c_str();
 
-            if((stream = freopen(c, "w", stdout)) == NULL) {
-                exit(-1);
-            }
+            // if((stream = freopen(c, "w", stdout)) == NULL) {
+            //     exit(-1);
+            // }
 
-            std::vector < DDS_octet > imageData = incomingMessage->getDataBuffer();
-            for (int d: imageData) {
-                printf("%c", d);
-            }
+            // std::vector < DDS_octet > imageData = incomingMessage->getDataBuffer();
+            // for (int d: imageData) {
+            //     printf("%c", d);
+            // }
         }
     }
 
