@@ -22,7 +22,9 @@
 Make sure that you can see a configuration for PolySync Kia Soul, close the configurator
 7. Open PolySync Studio: <br/>
 `polysync-core-studio`
-8. [Import session](1464470620356308_) from _1464470620356308_ folder and replay
+8. [Import session](http://docs.polysync.io/articles/runtime/managing-the-runtime/replay-logs-and-visualize-sample-data-2-0-pr-8/) from _1464470620356308_ folder and replay
+
+*NOTE: You will not be able to view the video from the Polysync Studio.  This is a known issue.*
 
 ## Troubleshoot sample data
 Sample data may not replay immediately
