@@ -6,12 +6,12 @@
 4. Activate license (***only do this once or you will use multiple licenses!***): <br/>
  `polysync-license-tool -a b5b3-eb9e-6f3c-4ff9-b0e5-dd22-d90a-f308`
 5. Create a symlink to the libcanlib.so <br/>
-`sudo ln –s /usr/local/polysync/vendor/lib/libcanlib.so /usr/local/polysync/vendor/lib/libcanlib.so.1`
+`sudo ln -s /usr/local/polysync/vendor/lib/libcanlib.so /usr/local/polysync/vendor/lib/libcanlib.so.1`
 
 
 ## Using sample data
 
-1. Download [PolySync dataset](https://www.dropbox.com/s/tt055gyb9of02uj/polysync-self-racing-cars-logfile.tar.gz?dl=0)
+1. Download [PolySync dataset](https://www.dropbox.com/s/exjh3y0d9q4t5a3/polysync-self-racing-cars-2016-dataset.tar.gz?dl=0)
 2. Download [psync.sdf file](https://drive.google.com/open?id=0B0ZFAnBlExjMSXVGa0xJdTNXaGc)
 3. Go to downloaded dataset folder (_polysync-self-racing-cars-data/1464470620356308_) and replace existing psync.sdf file with the one from step 2
 4. Go to _~/.local/share/polysync/config_ folder and replace existing psync.sdf file with the one from step 2
@@ -22,7 +22,9 @@
 Make sure that you can see a configuration for PolySync Kia Soul, close the configurator
 7. Open PolySync Studio: <br/>
 `polysync-core-studio`
-8. [Import session](1464470620356308_) from _1464470620356308_ folder and replay
+8. [Import session](http://docs.polysync.io/articles/runtime/managing-the-runtime/replay-logs-and-visualize-sample-data-2-0-pr-8/) from _1464470620356308_ folder and replay
+
+*NOTE: You will not be able to view the video from the Polysync Studio.  This is a known issue.*
 
 ## Troubleshoot sample data
 Sample data may not replay immediately

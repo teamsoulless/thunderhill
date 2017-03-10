@@ -25,17 +25,21 @@
 
 /**
  * \example HelloWorldSubscriber.cpp
- * 
+ *
  * PolySync Hello World Subscriber C++ API example application
  *      Demonstrate how to subscribe a node to a message
  *
  */
 
-#include <iostream>
-#include <PolySyncNode.hpp>
-#include <PolySyncDataModel.hpp>
-#include <fstream>
+ #include <iostream>
+ #include <PolySyncNode.hpp>
+ #include <PolySyncDataModel.hpp>
+ #include <fstream>
+ #include <stdio.h>
+ #include <string>
+ #include <math.h>
 
+ #define PI 3.14159265
 
 using namespace std;
 
@@ -53,7 +57,7 @@ class RecorderNode : public polysync::Node
 private:
     ps_msg_type _messageType;
     ps_msg_type _imageType;
-    ofstream file = ofstream("recording.txt", std::ios_base::app | std::ofstream::out);
+    ofstream file = ofstream("platform.csv", std::ios_base::app | std::ofstream::out);
 public:
     /**
      * @brief initStateEvent
@@ -73,27 +77,52 @@ public:
         registerListener( _messageType );
         registerListener(_imageType);
     }
-    
+
     /**
      * @brief messageEvent
-     * 
+     *
      * Extract the information from the provided message
-     * 
+     *
      * @param std::shared_ptr< Message > - variable containing the message
      * @return void
      */
     virtual void messageEvent( std::shared_ptr< polysync::Message > message )
     {
         using namespace polysync::datamodel;
-        if( std::shared_ptr <PlatformMotionMessage> incomingMessage = getSubclass< PlatformMotionMessage >( message ) )
-        {  
-            incomingMessage->print(file);
 
-	    //incomingMessage->getMessageTimestamp(); 
-        }
-        if (std::shared_ptr < ImageDataMessage > incomingMessage = getSubclass < ImageDataMessage > (message)) 
+        if( std::shared_ptr <PlatformMotionMessage> incomingMessage = getSubclass< PlatformMotionMessage >( message ) )
         {
-        	incomingMessage->print(file);
+            DDS_unsigned_long_long ts = incomingMessage->getHeaderTimestamp();
+
+            //to find yaw, use orientation quaternion
+            //yaw   =  Mathf.Asin(2*x*y + 2*z*w);
+            std::array< DDS_double, 4 > orient = incomingMessage->getOrientation();
+            double yaw = asin((2 * orient[0] * orient[1]) + (2 * orient[2] * orient[3]))  * 180.0 / PI;
+
+            //to put to csv: ts, yaw, heading, velocity (x, y, z)
+            double heading = incomingMessage->getHeading();
+            std::array< DDS_double, 3 > vel = incomingMessage->getVelocity();
+
+            std::string dataString = std::to_string(ts)+","+std::to_string(yaw) +","+std::to_string(heading)+","+std::to_string(vel[0])+","+std::to_string(vel[1])+","+std::to_string(vel[2])+"\n";
+            file << dataString;
+        }
+
+        if (std::shared_ptr < ImageDataMessage > incomingMessage = getSubclass < ImageDataMessage > (message))
+        {
+            FILE *stream;
+            DDS_unsigned_long_long ts = incomingMessage->getHeaderTimestamp();
+            std::string imageName = "IMG/" + std::to_string(incomingMessage->getSensorDescriptor().getId()) + '-' + std::to_string(ts) + ".jpeg";
+            const char * c = imageName.c_str();
+            if((stream = freopen(c, "w", stdout)) == NULL) {
+              fprintf(stderr,"Can't create file: %s\nTry:\n\tmkdir IMG\n\n", imageName.c_str());
+              fflush(stderr);
+                exit(-1);
+            }
+
+            std::vector < DDS_octet > imageData = incomingMessage->getDataBuffer();
+            for (int d: imageData) {
+                printf("%c", d);
+            }
         }
     }
 

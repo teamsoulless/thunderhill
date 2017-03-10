@@ -19,6 +19,7 @@ $ cd RecorderNode
 $ mkdir build && cd build
 $ cmake ..
 $ make
+$ mkdir IMG   #Very important - won't work without it
 $ ./recorder-node
 ```
 
