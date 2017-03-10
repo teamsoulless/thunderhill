@@ -108,7 +108,7 @@ COLUMNS = ['center', 'steering', 'throttle', 'brake', 'speed']
 
 def getDataFromFolder(folder):
     data = pd.DataFrame(columns=COLUMNS)
-    for csvpath in glob.glob('{}/**/*.csv'.format(folder)):
+    for csvpath in glob.glob('{}/**/driving_log.csv'.format(folder)):
         df = pd.read_csv(csvpath)
         basename = os.path.dirname(csvpath)
         df['center'] = basename + '/' + df['center']

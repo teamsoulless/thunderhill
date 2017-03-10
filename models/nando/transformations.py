@@ -178,9 +178,11 @@ def Preproc(img):
     if img.size == 0:
         return img
 
+    height, width, depth = img.shape
+
     preproc = Preprocess([
         RGB2HSV(),
-        # Crop(50, 270, 40, 140),
+        Crop(0, width, 200, height),  # x_min, x_max, y_min, y_max
         Resize(200, 66),
         Normalizer(a=-0.5, b=0.5)
     ])

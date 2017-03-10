@@ -15,6 +15,7 @@ from keras.regularizers import l2
 import argparse
 import os
 from loader import __train_test_split, generate_batches, generate_thunderhill_batches, getDataFromFolder
+from config import *
 
 """ Usefeful link
 		ImageDataGenerator 		- https://keras.io/preprocessing/image/
@@ -55,16 +56,6 @@ def NvidiaModel(learning_rate, dropout):
     print(model.summary())
     return model
 
-BATCH_SIZE = 128
-EPOCHS = 10
-FORMAT = '%(asctime)-15s %(clientip)s %(user)-8s %(message)s'
-WIDTH = 66
-HEIGHT = 200
-DEPTH = 3
-ALPHA = 0.001
-DROPOUT = 0.5
-OUTPUT = '.hdf5_checkpoints'
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Steering angle model trainer')
@@ -74,7 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('--dropout', type=float, default=DROPOUT, help='Dropout rate')
     parser.add_argument('--weights', type=str, help='Load weights')
     parser.add_argument('--dataset', type=str, required=True, help='Get dataset here')
-    parser.add_argument('--output', type=str, default=OUTPUT, help='Save model here')
+    parser.add_argument('--output', type=str, required=True, help='Save model here')
     args = parser.parse_args()
 
     print('-------------')
@@ -82,7 +73,7 @@ if __name__ == '__main__':
     print('EPOCH: {}'.format(args.epoch))
     print('ALPA: {}'.format(args.alpha))
     print('DROPOUT: {}'.format(args.dropout))
-    print('Load Weights?: {}'.format(args.loadWeights))
+    print('Load Weights?: {}'.format(args.weights))
     print('Dataset: {}'.format(args.dataset))
     print('Model: {}'.format(args.output))
     print('-------------')
@@ -91,7 +82,6 @@ if __name__ == '__main__':
         os.makedirs(args.output)
 
     # ROOT = '/Users/nando/Downloads/thunderhill_data/dataset_sim_000_km_few_laps'
-    # split data into training and testing
     # df_train, df_val = __train_test_split('{}/driving_log.csv'.format(ROOT), False)
     df_train, df_val = getDataFromFolder(args.dataset)
     print('TRAIN:', len(df_train))
