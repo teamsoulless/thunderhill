@@ -30,7 +30,7 @@ from config import *
 
 
 def NvidiaModel(learning_rate, dropout):
-    input_model = Input(shape=(WIDTH, HEIGHT, DEPTH))
+    input_model = Input(shape=(HEIGHT, WIDTH, DEPTH))
     x = Convolution2D(24, 5, 5, border_mode='valid', subsample=(2, 2), W_regularizer=l2(learning_rate))(input_model)
     x = ELU()(x)
     x = Convolution2D(36, 5, 5, border_mode='valid', subsample=(2, 2), W_regularizer=l2(learning_rate))(x)
