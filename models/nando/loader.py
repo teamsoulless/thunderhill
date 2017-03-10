@@ -4,16 +4,14 @@ import cv2
 import glob
 import os
 
-
 # Sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from transformations import Preproc, RandomShift, RandomFlip, RandomBrightness
-
+from config import *
 
 def ReadImg(path):
     return np.array(cv2.cvtColor(cv2.imread(path.strip()), code=cv2.COLOR_BGR2RGB))
-
 
 def generate_validation(df, basename='data'):
     batch_x, batch_y = [], []
@@ -22,7 +20,7 @@ def generate_validation(df, basename='data'):
         steering_angle = row['steering']
         img = ReadImg(basename)
         img = Preproc(img)
-        batch_x.append(np.reshape(img, (1, 66, 200, 3)))
+        batch_x.append(np.reshape(img, (1, HEIGHT, WIDTH, DEPTH)))
         batch_y.append([steering_angle])
     return batch_x, batch_y
 
@@ -57,7 +55,7 @@ def generate_batches(df, batch_size, basename='data'):
             img, steering_angle = RandomBrightness(img, steering_angle)
 
             img = Preproc(img)
-            batch_x.append(np.reshape(img, (1, 66, 200, 3)))
+            batch_x.append(np.reshape(img, (1, HEIGHT, WIDTH, DEPTH)))
             batch_y.append([steering_angle])
 
             if len(batch_x) == batch_size:
@@ -82,7 +80,7 @@ def generate_thunderhill_batches(df, batch_size):
             img, steering_angle = RandomFlip(img, steering_angle)
             img, steering_angle = RandomBrightness(img, steering_angle)
             img = Preproc(img)
-            batch_x.append(np.reshape(img, (1, 66, 200, 3)))
+            batch_x.append(np.reshape(img, (1, HEIGHT, WIDTH, DEPTH)))
             batch_y.append([steering_angle])
 
             if len(batch_x) == batch_size:
@@ -108,7 +106,7 @@ COLUMNS = ['center', 'steering', 'throttle', 'brake', 'speed']
 
 def getDataFromFolder(folder):
     data = pd.DataFrame(columns=COLUMNS)
-    for csvpath in glob.glob('{}/**/driving_log.csv'.format(folder)):
+    for csvpath in glob.glob('{}/dataset_sim_001_km_320x160/driving_log.csv'.format(folder)):
         df = pd.read_csv(csvpath)
         basename = os.path.dirname(csvpath)
         df['center'] = basename + '/' + df['center']

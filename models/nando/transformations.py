@@ -105,7 +105,6 @@ class Identity(Transform):
     def toString(self):
         return '{}'.format('Identity')
 
-
 class Skew(Transform):
 
     def __init__(self, pts1, pts2):
@@ -113,8 +112,10 @@ class Skew(Transform):
         self.pts2 = pts2
 
     def apply(self, img):
-        M = cv2.getPerspectiveTransform(self.pts1, self.pts2)
-        dst = cv2.warpPerspective(img,M,(32,32))
+        img_size = (img.shape[1], img.shape[0])
+        self.M = cv2.getPerspectiveTransform(self.pts1, self.pts2)
+        self.invM = cv2.getPerspectiveTransform(self.pts2, self.pts1)
+        dst = cv2.warpPerspective(img, self.M, img_size, flags=cv2.INTER_LINEAR)
         return dst
 
     def toString(self):
@@ -180,10 +181,14 @@ def Preproc(img):
 
     height, width, depth = img.shape
 
+    src = np.float32([[100, 75], [0, 120], [200, 75], [320, 120]])
+    dst = np.float32([[80, 0], [100, 160], [215, 0], [215, 160]])
+
     preproc = Preprocess([
-        RGB2HSV(),
-        Crop(0, width, 200, height),  # x_min, x_max, y_min, y_max
-        Resize(200, 66),
+        # RGB2HSV(),
+        # Crop(0, width, 200, height),  # x_min, x_max, y_min, y_max
+        Skew(src, dst),
+        # Resize(200, 66),
         Normalizer(a=-0.5, b=0.5)
     ])
 
