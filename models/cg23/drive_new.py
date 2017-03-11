@@ -34,7 +34,6 @@ app = Flask(__name__)
 model = None
 prev_image_array = None
 
-
 # PI controller for throttle/brake
 class SimplePIController:
     def __init__(self, Kp, Ki):
@@ -60,7 +59,6 @@ controller = SimplePIController(0.1, 0.01)
 set_speed = 50
 controller.set_desired(set_speed)
 
-
 # Top down view transform
 def birds_eye(img):
     # Grab the image shape
@@ -84,7 +82,6 @@ def birds_eye(img):
     M = cv2.getPerspectiveTransform(src, dst)
     warped = cv2.warpPerspective(img, M, img_size, flags=cv2.INTER_LINEAR)
     return warped
-
 
 @sio.on('telemetry')
 
