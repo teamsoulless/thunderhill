@@ -392,7 +392,7 @@ def data_generator(steering_log, image_log, image_folder, gen_type='train',
     # -----------------------------------------------------------------------------
     i = start
     if gen_type == 'train':
-        thresh = 0.25
+        thresh = 0.2
     else:
         thresh = 0
     print(thresh)
@@ -513,7 +513,7 @@ def main():
     # Data paths
     # ---------------------------------------------------------------------------------
     # build model and train it
-    steering_log = path.join(dataset_path, 'driving_log_11.csv')
+    steering_log = path.join(dataset_path, 'driving_log.csv')
     image_log = dataset_path
     camera_images = dataset_path
     epoch = 0
@@ -543,7 +543,7 @@ def main():
                             shuffle=True,
                             preprocess_input=input_processor,
                             preprocess_output=output_processor)
- 
+        
         # Use data_sim.py to generate validation data
         # -----------------------------------------------------------------------------
         val_generator = data_generator(steering_log=steering_log,
