@@ -70,14 +70,16 @@ def telemetry(sid, data):
         # print(steering_angle, throttle)
         # send_control(steering_angle, throttle)
         image = Image.open(BytesIO(base64.b64decode(imgString)))
-        image_array = cv2.cvtColor(np.asarray(image), code=cv2.COLOR_RGB2BGR)
+        # image_array = cv2.cvtColor(np.asarray(image), code=cv2.COLOR_RGB2BGR)
+
+        image_array = np.asarray(image)
         image_array = Preproc(image_array)
 
         transformed_image_array = image_array[None, :, :, :]
         # This model currently assumes that the features of the model are just the images. Feel free to change this.
         steering_angle = float(model.predict(transformed_image_array, batch_size=1))
         # The driving model currently just outputs a constant throttle. Feel free to edit this.
-        throttle = 0.3
+        throttle = args.throttle
         print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
@@ -121,6 +123,9 @@ if __name__ == '__main__':
         default='',
         help='Path to image folder. This is where the images from the run will be saved.'
     )
+
+    parser.add_argument('--throttle', type=float, default=0.3, help='Throttle')
+
     args = parser.parse_args()
 
     # check that model Keras version is same as local Keras version
