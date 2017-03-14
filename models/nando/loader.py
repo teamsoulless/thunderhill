@@ -7,7 +7,7 @@ import os
 # Sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
-from transformations import Preproc, RandomShift, RandomFlip, RandomBrightness
+from transformations import Preproc, RandomShift, RandomFlip, RandomBrightness, RandomRotation
 from config import *
 
 def ReadImg(path):
@@ -74,11 +74,11 @@ def generate_thunderhill_batches(df, batch_size):
 
         for idx, row in df.iterrows():
             steering_angle = row['steering']
-            # img = ReadImg('{}/{}'.format(basename, row['center'].strip()))
             img = ReadImg(row['center'])
-            img, steering_angle = RandomShift(img, steering_angle)
+            img, steering_angle = RandomShift(img, steering_angle, ADJUSTMENT)
             img, steering_angle = RandomFlip(img, steering_angle)
             img, steering_angle = RandomBrightness(img, steering_angle)
+            img, steering_angle = RandomRotation(img, steering_angle)
             img = Preproc(img)
             batch_x.append(np.reshape(img, (1, HEIGHT, WIDTH, DEPTH)))
             batch_y.append([steering_angle])
@@ -102,13 +102,22 @@ def __train_test_split(csvpath, balance=True):
     df = shuffle(df)
     return train_test_split(df, test_size=0.2, random_state=42)
 
-COLUMNS = ['center', 'steering', 'throttle', 'brake', 'speed']
+COLUMNS = ["center","left","right","steering","throttle","brake","speed","position","rotation"]
+SKIP    = ["dataset_sim_000_km_few_laps"]
 
 def getDataFromFolder(folder):
     data = pd.DataFrame(columns=COLUMNS)
-    for csvpath in glob.glob('{}/dataset_sim_001_km_320x160/driving_log.csv'.format(folder)):
+    for csvpath in glob.glob('{}/**/driving_log.csv'.format(folder)):
         df = pd.read_csv(csvpath)
+        df.columns = COLUMNS
         basename = os.path.dirname(csvpath)
+        skip = False
+        for toSkip in SKIP:
+            if toSkip in csvpath:
+                skip = True
+        if skip:
+            continue
+
         df['center'] = basename + '/' + df['center']
         data = data.append(df[COLUMNS])
 
