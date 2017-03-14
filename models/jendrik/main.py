@@ -18,9 +18,11 @@ import functools
 from Preprocess import *
 import numpy as np
 from keras.optimizers import Adam
+from multiprocessing import Pool
+import threading
 
 LOADMODEL = False
-ANGLESFED = 10
+ANGLESFED = 30
 
 
 flags = tf.app.flags
@@ -79,19 +81,19 @@ def produceExamples(dataShuffled, dataNew):
     plt.show()
 
 
-def generateTrainImagesFromPaths(data, batchSize, inputShape, outputShape, transform, angles):
+def generateTrainImagesFromPaths(data, batchSize, inputShape, outputShape, transform, angles, images):
     """
         The generator function for the training data for the fit_generator
         Input:
         data - an pandas dataframe containing the paths to the images, the steering angle,...
         batchSize, the number of values, which shall be returned per call
     """
-    returnArr = np.zeros((batchSize, inputShape[0], inputShape[1], inputShape[2]))
-    angleArr = np.zeros((batchSize, ANGLESFED))
-    vecArr = np.zeros((batchSize, 6))
-    labels = np.zeros((batchSize, outputShape[0]))
-    weights = np.zeros(batchSize)
     while 1:
+        returnArr = np.zeros((batchSize, inputShape[0], inputShape[1], inputShape[2]))
+        angleArr = np.zeros((batchSize, ANGLESFED))
+        vecArr = np.zeros((batchSize, 6))
+        labels = np.zeros((batchSize, outputShape[0]))
+        weights = np.zeros(batchSize)
         indices = np.random.randint(0, len(data), batchSize)
         for i,index in zip(range(len(indices)),indices):
             row = data.iloc[index]
@@ -103,7 +105,7 @@ def generateTrainImagesFromPaths(data, batchSize, inputShape, outputShape, trans
                 image = np.array(mpimg.imread(row['left'].strip()))
                 label = np.array([min(row['steering']+.15,1), row['throttle'], row['brake']])
             else:
-                image = np.array(mpimg.imread(row['center'].strip()))
+                image = images[int(row['imageIndex'])]
                 label = np.array([row['steering'], row['throttle'], row['brake']])
             xVector = row[['positionX', 'positionY', 'positionZ', 'orientationX', 'orientationY', 'orientationZ']].values
             if(image.shape[0] != 320): image = cv2.resize(image, (320, 160))
@@ -136,12 +138,13 @@ def generateTrainImagesFromPaths(data, batchSize, inputShape, outputShape, trans
             else:
                 angleArr[i] = np.array(angles[int(row['angleIndex']-ANGLESFED):int(row['angleIndex'])])
             weights[i] = row['norm']
+            xVector = np.array([val + np.random.rand()*0.02 - 0.01 for val in xVector])
             vecArr[i] = xVector
             
         yield({'input_1': returnArr, 'input_2': angleArr, 'input_3': vecArr},
               {'output': labels[:,0]}, weights)
-                
-def generateTestImagesFromPaths(data, batchSize, inputShape, outputShape, transform, angles):
+    
+def generateTestImagesFromPaths(data, batchSize, inputShape, outputShape, transform, angles,images):
     """
         The generator function for the validation and test data for the fit_generator
         Input:
@@ -149,14 +152,16 @@ def generateTestImagesFromPaths(data, batchSize, inputShape, outputShape, transf
         batchSize, the number of values, which shall be returned per call
     """
     size=0
-    returnArr = np.zeros((batchSize, inputShape[0], inputShape[1], inputShape[2]))
-    angleArr = np.zeros((batchSize, ANGLESFED))
-    vecArr = np.zeros((batchSize, 6))
-    labels = np.zeros((batchSize, outputShape[0]))
-    weights = np.zeros(batchSize)
+    lock = threading.Lock()
+    
     while 1:
+        returnArr = np.zeros((batchSize, inputShape[0], inputShape[1], inputShape[2]))
+        angleArr = np.zeros((batchSize, ANGLESFED))
+        vecArr = np.zeros((batchSize, 6))
+        labels = np.zeros((batchSize, outputShape[0]))
+        weights = np.zeros(batchSize)
         row = data.iloc[size%len(data)]
-        image = np.array(mpimg.imread(row['center'].strip()))
+        image = images[int(row['imageIndex'])]
         label = np.array([row['steering'], row['throttle'], row['brake']])
         xVector = row[['positionX', 'positionY', 'positionZ', 'orientationX', 'orientationY', 'orientationZ']].values
         xVector = [val + .01*np.random.randn() for val in xVector]
@@ -166,19 +171,21 @@ def generateTestImagesFromPaths(data, batchSize, inputShape, outputShape, transf
         if flip>.5:
             image = mirrorImage(image)
             label[0] *= -1
-        returnArr[size%batchSize] = image
-        labels[size%batchSize] = label
-        if flip>.5:
-            angleArr[size%batchSize] = -1.*np.array(angles[int(row['angleIndex']-ANGLESFED):int(row['angleIndex'])])
-        else:
-            angleArr[size%batchSize] = np.array(angles[int(row['angleIndex']-ANGLESFED):int(row['angleIndex'])])
-        weights[size%batchSize] = row['norm']
-        vecArr[size%batchSize] = xVector
-        if(size%batchSize==0):
-            
-            yield({'input_1': returnArr ,'input_2': angleArr, 'input_3': vecArr},
-                  {'output': labels[:,0]}, weights)
-        size+=1
+        with lock:
+            returnArr[size%batchSize] = image
+            labels[size%batchSize] = label
+            if flip>.5:
+                angleArr[size%batchSize] = -1.*np.array(angles[int(row['angleIndex']-ANGLESFED):int(row['angleIndex'])])
+            else:
+                angleArr[size%batchSize] = np.array(angles[int(row['angleIndex']-ANGLESFED):int(row['angleIndex'])])
+            weights[size%batchSize] = row['norm']
+            vecArr[size%batchSize] = xVector 
+            if(size%batchSize==0):
+                
+                yield({'input_1': returnArr ,'input_2': angleArr, 'input_3': vecArr},
+                      {'output': labels[:,0]}, weights)
+            size+=1    
+
 
 def customLoss(y_true, y_pred):
     """
@@ -230,44 +237,53 @@ def main():
     data1 = pd.read_csv('/home/jjordening/git/thunderhill_data/dataset_sim_001_km_320x160/driving_log.csv', 
                        header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
     data1['center'] = '/home/jjordening/git/thunderhill_data/dataset_sim_001_km_320x160/'+data1['center'].apply(lambda x: x.strip())
-    data1['positionX'], data1['positionY'], data1['positionZ'] = data1['position'].apply(retrieveVectors)
-    data1['orientationX'], data1['orientationY'], data1['orientationZ'] = data1['orientation'].apply(retrieveVectors)
+    data1[['positionX','positionY','positionZ']] = data1['position'].apply(retrieveVectors)
+    data1[['orientationX','orientationY','orientationZ']] = data1['orientation'].apply(retrieveVectors)
     data2 = pd.read_csv('/home/jjordening/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/driving_log.csv', 
                        header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
     data2['center'] = '/home/jjordening/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/'+data2['center'].apply(lambda x: x.strip())
-    data2['positionX'], data2['positionY'], data2['positionZ'] = data2['position'].apply(retrieveVectors)
-    data2['orientationX'], data2['orientationY'], data2['orientationZ'] = data2['orientation'].apply(retrieveVectors)
+    data2[['positionX','positionY','positionZ']] = data2['position'].apply(retrieveVectors)
+    data2[['orientationX','orientationY','orientationZ']] = data2['orientation'].apply(retrieveVectors)
     #data['right'] = '../simulator/data/data/'+data['right'].apply(lambda x: x.strip())
     #data['left'] = '../simulator/data/data/'+data['left'].apply(lambda x: x.strip())
     angles = []
     """data2 = pd.read_csv('../simulator/simulator-linux/driving_log.csv', header = None, names=['center','left', 'right', 'steering',
                                                                'throttle', 'break', 'speed'])
     data = data.append(data2)"""
-    dataNew = pd.DataFrame(columns=['center','left', 'right', 'steering',
-                                                               'throttle', 'break', 'speed', 'position', 'orientation', 
-                                                               'positionX', 'positionY', 'positionZ', 
-                                                               'orientationX', 'orientationY', 'orientationZ'])
+    dataNew = pd.DataFrame()
     offset = 0
-    print(len(data1), len(data2))
+    images =[]
     for dat in [data1, data2]:
         angles.extend(dat['steering'].values)
+        for path in dat['center'].values:
+            images.append(np.array(mpimg.imread(path.strip())))
         for row in dat.iterrows():
             dat.loc[row[0], 'angleIndex'] = row[0]+ offset
+            dat.loc[row[0], 'imageIndex'] = row[0]+ offset
         offset+=100
         dataNew = dataNew.append(dat.ix[100:])
     # TODO: Normalisation of position and orientation
     print(len(dataNew), dataNew.columns)
     hist, edges = np.histogram(dataNew['steering'], bins = 31)
-    hist = 1./np.array([val if val > len(dataNew)/20. else len(dataNew)/20. for val in hist])
-    hist*=len(dataNew)/20.
+    hist = 1./np.array([val if val > len(dataNew)/10. else len(dataNew)/10. for val in hist])
+    hist*=len(dataNew)/10.
     print(hist, len(dataNew))
     dataNew['norm'] = dataNew['steering'].apply(lambda x: getNormFactor(x, hist, edges))
     print(dataNew['norm'].unique())
     del data1, data2
     
+    for col in ['positionX', 'positionY', 'positionZ', 'orientationX', 'orientationY', 'orientationZ']:
+        vals = dataNew[col].values
+        mean = np.mean(vals)
+        std = np.std(vals)
+        dataNew[col] -= mean
+        dataNew[col] /= std
+        print('%s Mean:%.3f Std:%.3f' %(col, mean, std))
+    
     dataNew = shuffle(dataNew, random_state=0)
     plt.figure(1, figsize=(8,4))
     plt.hist(dataNew['steering'], bins =31)
+    
     #plt.show()
     
     dataTrain, dataTest= train_test_split(dataNew, test_size = .2)
@@ -280,44 +296,51 @@ def main():
     batchSize = 64
     epochBatchSize = 4096
     
-    trainGenerator = generateTrainImagesFromPaths(dataTrain, batchSize, imShape, [3], transform, angles)
-    valGenerator = generateTestImagesFromPaths(dataVal, batchSize, imShape, [3], transform, angles)
+    trainGenerator = generateTrainImagesFromPaths(dataTrain, batchSize, imShape, [3], transform, angles, images)
+    trainBatch = trainGenerator.__next__()
+    print(len(trainBatch[0]['input_1']), len(trainBatch[0]['input_2']), len(trainBatch[0]['input_3']), 
+          len(trainBatch[1]['output']), len(trainBatch[2]))
+    valGenerator = generateTestImagesFromPaths(dataVal, batchSize, imShape, [3], transform, angles, images)
+    trainBatch = valGenerator.__next__()
+    print(len(trainBatch[0]['input_1']), len(trainBatch[0]['input_2']), len(trainBatch[0]['input_3']), 
+          len(trainBatch[1]['output']), len(trainBatch[2]))
     stopCallback = EarlyStopping(monitor='val_loss', patience = 10, min_delta = 0.)
     checkCallback = ModelCheckpoint('model.ckpt', monitor='val_loss', save_best_only=True)
-    visCallback = TensorBoard(log_dir = './logs')
+    #visCallback = TensorBoard(log_dir = './logs')
     if LOADMODEL:
         endModel = load_model('initModel.h5', custom_objects={'customLoss':customLoss})
-        endModel.fit_generator(trainGenerator, callbacks=[stopCallback, checkCallback, visCallback], nb_epoch=20, samples_per_epoch=epochBatchSize, 
-                               max_q_size=128,validation_data = valGenerator, nb_val_samples=len(dataVal))
+        endModel.fit_generator(trainGenerator, callbacks=[stopCallback, checkCallback], epochs=20, steps_per_epoch=epochBatchSize, 
+                               max_q_size=2048,validation_data = valGenerator, validation_steps=len(dataVal),
+                               workers = 8, pickle_safe=True)
         endModel.load_weights('model.ckpt')
         endModel.save('model.h5')
         
         
     else:
         inpC = Input(shape=(imShape[0], imShape[1], imShape[2]), name='input_1')
-        xC = Convolution2D(24, 8, 8,border_mode='valid', subsample=(2,2))(inpC)
+        xC = Convolution2D(24, (8, 8), padding='valid', strides=(2,2))(inpC)
         xC = BatchNormalization()(xC)
         xC = Activation('elu')(xC)
         print(xC.get_shape())
-        xC = Convolution2D(36, 5, 5, border_mode='valid',subsample=(2,2))(xC)
+        xC = Convolution2D(36, (5, 5), padding='valid', strides=(2,2))(xC)
         xC = BatchNormalization()(xC)
         xC = Activation('elu')(xC)
         print(xC.get_shape())
-        xC = Convolution2D(48, 5, 5, border_mode='valid',subsample=(2,2))(xC)
+        xC = Convolution2D(48, (5, 5), padding='valid', strides=(2,2))(xC)
         xC = BatchNormalization()(xC)
         xC = Activation('elu')(xC)
         print(xC.get_shape())
-        xC = Convolution2D(64, 3, 3, border_mode='valid')(xC)
+        xC = Convolution2D(64, (3, 3), padding='valid')(xC)
         xC = BatchNormalization()(xC)
         xC = Activation('elu')(xC)
         print(xC.get_shape())
-        xC = Convolution2D(64, 3, 3, border_mode='valid')(xC)
+        xC = Convolution2D(64, (3, 3), padding='valid')(xC)
         xC = BatchNormalization()(xC)
         xC = Activation('elu')(xC)
         print(xC.get_shape())
         xOut = Flatten()(xC)
         print(xC.get_shape())
-        xC = Convolution2D(64, 3, 3, border_mode='valid')(xC)
+        xC = Convolution2D(64, (3, 3), padding='valid')(xC)
         xC = BatchNormalization()(xC)
         xC = Activation('elu')(xC)
         print(xC.get_shape())
@@ -330,16 +353,12 @@ def main():
         xVector = Dense(100)(xVector)
         xVector = BatchNormalization()(xVector)
         xVector = Activation('elu')(xVector)
-        xVector = Dense(100)(xVector)
-        xVector = BatchNormalization()(xVector)
-        xVector = Activation('elu')(xVector)
-        xVector = Dense(100)(xVector)
-        xVector = BatchNormalization()(xVector)
-        xVector = Activation('elu')(xVector)
+        xVector = Dropout(.5)(xVector)
         
         
         inpAngles = Input(shape=(ANGLESFED,), name='input_2')
         
+        xOut = Dropout(.4)(xOut)
         xOut = Lambda(lambda x : K.concatenate(x, axis=1))([xOut, inpAngles, xVector])
         xOut = Dense(1164)(xOut)
         xOut = BatchNormalization()(xOut)
@@ -347,7 +366,6 @@ def main():
         xOut = Dense(100)(xOut)
         xOut = BatchNormalization()(xOut)
         xOut = Activation('elu')(xOut)
-        xOut = Dropout(.4)(xOut)
         xOut = Dense(50)(xOut)
         xOut = BatchNormalization()(xOut)
         xOut = Activation('elu')(xOut)
@@ -360,20 +378,20 @@ def main():
         endModel = Model((inpC, inpAngles, xVectorInp), xOut)
         endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'])
         # run a separate generator to make sure not to get stuck at the first step.
-        endModel.fit_generator(trainGenerator, callbacks = [visCallback], nb_epoch=5, 
-                               samples_per_epoch=epochBatchSize, max_q_size=128, 
-                               validation_data = valGenerator, nb_val_samples=len(dataVal))
-        endModel.fit_generator(trainGenerator, callbacks = [stopCallback, checkCallback,visCallback], 
-                               nb_epoch=100, samples_per_epoch=epochBatchSize, 
-                               max_q_size=128, validation_data = valGenerator, 
-                               nb_val_samples=len(dataVal))
+        endModel.fit_generator(trainGenerator, epochs=5, 
+                               steps_per_epoch=epochBatchSize, max_q_size=4096, 
+                               validation_data = valGenerator, validation_steps=len(dataVal))
+        endModel.fit_generator(trainGenerator, callbacks = [stopCallback, checkCallback], 
+                               epochs=100, steps_per_epoch=epochBatchSize, 
+                               max_q_size=4096, validation_data = valGenerator, 
+                               validation_steps=len(dataVal))
         endModel.load_weights('model.ckpt')
         endModel.save('initModel.h5')
         endModel.save('model.h5')
         
     endModel = load_model('model.h5', custom_objects={'customLoss':customLoss})
     print(endModel.evaluate_generator(valGenerator, val_samples=len(dataVal)))
-    print(endModel.evaluate_generator(generateTestImagesFromPaths(dataTest, batchSize, imShape, [3], transform, angles), val_samples=len(dataTest)))
+    print(endModel.evaluate_generator(generateTestImagesFromPaths(dataTest, batchSize, imShape, [3], transform, angles, images), val_samples=len(dataTest)))
 
 if __name__ == '__main__':
     main()
