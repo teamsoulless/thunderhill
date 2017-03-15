@@ -12,6 +12,8 @@ from keras.applications.vgg16 import preprocess_input
 from keras.layers import Input, Dense, GlobalAveragePooling2D, Flatten,Lambda,ELU
 from keras.models import Model, Sequential
 from keras.regularizers import l2
+from keras.layers.normalization import BatchNormalization
+from keras.optimizers import Adam
 import argparse
 import os
 from loader import __train_test_split, generate_batches, generate_thunderhill_batches, getDataFromFolder
@@ -30,7 +32,7 @@ from config import *
 
 
 def NvidiaModel(learning_rate, dropout):
-    input_model = Input(shape=(WIDTH, HEIGHT, DEPTH))
+    input_model = Input(shape=(HEIGHT, WIDTH, DEPTH))
     x = Convolution2D(24, 5, 5, border_mode='valid', subsample=(2, 2), W_regularizer=l2(learning_rate))(input_model)
     x = ELU()(x)
     x = Convolution2D(36, 5, 5, border_mode='valid', subsample=(2, 2), W_regularizer=l2(learning_rate))(x)
@@ -56,6 +58,42 @@ def NvidiaModel(learning_rate, dropout):
     print(model.summary())
     return model
 
+
+def NvidiaModelModified(dropout):
+    input_model = Input(shape=(HEIGHT, WIDTH, DEPTH))
+    x = Convolution2D(24, 8, 8, border_mode='valid', subsample=(4, 4), init='he_normal')(input_model)
+    x = BatchNormalization()(x)
+    x = ELU()(x)
+    x = Convolution2D(36, 5, 5, border_mode='valid', subsample=(2, 2), init='he_normal')(x)
+    x = BatchNormalization()(x)
+    x = ELU()(x)
+    x = Convolution2D(48, 5, 5, border_mode='valid', subsample=(2, 2), init='he_normal')(x)
+    x = BatchNormalization()(x)
+    x = ELU()(x)
+    x = Convolution2D(64, 3, 3, border_mode='valid', subsample=(1, 1), init='he_normal')(x)
+    x = BatchNormalization()(x)
+    x = ELU()(x)
+    x = Convolution2D(64, 3, 3, border_mode='valid', subsample=(1, 1), init='he_normal')(x)
+    x = BatchNormalization()(x)
+    x = ELU()(x)
+    x = Flatten()(x)
+    x = Dense(100, init='he_normal')(x)
+    x = BatchNormalization()(x)
+    x = ELU()(x)
+    x = Dropout(dropout)(x)
+    x = Dense(50, init='he_normal')(x)
+    x = BatchNormalization()(x)
+    x = ELU()(x)
+    x = Dropout(dropout)(x)
+    x = Dense(10, init='he_normal')(x)
+    x = BatchNormalization()(x)
+    x = ELU()(x)
+    predictions = Dense(1)(x)
+    model = Model(input=input_model, output=predictions)
+    model.compile(optimizer=Adam(lr=1e-4), loss='mse')
+    print(model.summary())
+    return model
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Steering angle model trainer')
@@ -64,30 +102,31 @@ if __name__ == '__main__':
     parser.add_argument('--alpha', type=float, default=ALPHA, help='Learning rate')
     parser.add_argument('--dropout', type=float, default=DROPOUT, help='Dropout rate')
     parser.add_argument('--weights', type=str, help='Load weights')
+    parser.add_argument('--model', type=int, default=0, help='Load weights')
     parser.add_argument('--dataset', type=str, required=True, help='Get dataset here')
     parser.add_argument('--output', type=str, required=True, help='Save model here')
     args = parser.parse_args()
 
-    print('-------------')
-    print('BATCH: {}'.format(args.batch))
-    print('EPOCH: {}'.format(args.epoch))
-    print('ALPA: {}'.format(args.alpha))
-    print('DROPOUT: {}'.format(args.dropout))
-    print('Load Weights?: {}'.format(args.weights))
-    print('Dataset: {}'.format(args.dataset))
-    print('Model: {}'.format(args.output))
-    print('-------------')
-
     if not os.path.exists(args.output):
         os.makedirs(args.output)
 
-    # ROOT = '/Users/nando/Downloads/thunderhill_data/dataset_sim_000_km_few_laps'
-    # df_train, df_val = __train_test_split('{}/driving_log.csv'.format(ROOT), False)
+    print('-------------')
+    print('BATCH        : {}'.format(args.batch))
+    print('EPOCH        : {}'.format(args.epoch))
+    print('ALPA         : {}'.format(args.alpha))
+    print('DROPOUT      : {}'.format(args.dropout))
+    print('Load Weights?: {}'.format(args.weights))
+    print('Dataset      : {}'.format(args.dataset))
+    print('OUTPUT       : {}'.format(args.output))
+    print('MODEL        ; {}'.format(args.model))
+    print('-------------')
+
     df_train, df_val = getDataFromFolder(args.dataset)
     print('TRAIN:', len(df_train))
     print('VALIDATION:', len(df_val))
 
-    model = NvidiaModel(args.alpha, args.dropout)
+    models = [NvidiaModel(args.alpha, args.dropout), NvidiaModelModified(DROPOUT), NvidiaChris()]
+    model = models[args.model]
 
     # Saves the model...
     with open(os.path.join(args.output, 'model.json'), 'w') as f:

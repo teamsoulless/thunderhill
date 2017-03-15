@@ -154,7 +154,7 @@ class GuassianBlur(Transform):
 
     def getRadius(self):
         if self.radius is None:
-            return np.random.choice([3, 5, 7])
+            self.radius = np.random.choice([1, 3, 5])
         return self.radius
 
     def toString(self):
@@ -189,7 +189,7 @@ def Preproc(img):
         # Crop(0, width, 200, height),  # x_min, x_max, y_min, y_max
         Skew(src, dst),
         # Resize(200, 66),
-        Normalizer(a=-0.5, b=0.5)
+        Normalizer(a=-1, b=1)
     ])
 
     return preproc.apply(img)
@@ -234,7 +234,7 @@ def Shift(_img, by_x=0, by_y=0):
     elif by_x >= 0 and by_y < 0:
         img = Crop(by_x, width, 0, height+by_y).apply(img)
     elif by_x < 0 and by_y < 0:
-        img = Crop(0, width + by_x, 0, height + by_y).apply(img)
+        img = Crop(0, width + by_x, 0, height+by_y).apply(img)
     elif by_x < 0 and by_y >= 0:
         img = Crop(0, width + by_x, by_y, height).apply(img)
     img = Resize(width, height).apply(img)
@@ -243,12 +243,14 @@ def Shift(_img, by_x=0, by_y=0):
 """
 Randomly shift images
 """
-def RandomShift(img, steering):
+def RandomShift(img, steering, adjustment=0.005):
     if np.random.uniform() < 0.5:
         return img, steering
     tx = np.random.randint(-30, 30)
-    steering += tx*0.005
-    return Shift(img, tx, np.random.randint(-30, 30)), steering
+    steering += tx*adjustment
+    steering = min(steering, 1)
+    steering = max(steering, -1)
+    return Shift(img, tx, 0), steering
 
 """
 Randomly flip the images
@@ -257,12 +259,30 @@ def RandomFlip(img, steering):
     if np.random.uniform() < 0.5:
         return img, steering
     return Flip().apply(img), -steering
-
 """
 Randomly change the brightness
 """
 def RandomBrightness(img, steering):
     if np.random.uniform() < 0.5:
         return img, steering
-    img[:, :, 2] = img[:, :, 2] * np.random.uniform()
-    return img, steering
+
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    img[:, :, 2] = img[:, :, 2] * np.random.uniform(0.25, 1.01)
+    return cv2.cvtColor(img, cv2.COLOR_HSV2RGB), steering
+
+"""
+Randomly rotate the images.
+"""
+def RandomRotation(img, steering):
+    if np.random.uniform() < 0.5:
+        return img, steering
+    rot_angle = np.random.uniform(-1, 1)
+    return Rotate(rot_angle).apply(img), steering
+
+"""
+Randomly blur the images
+"""
+def RandomBlur(img, steering):
+    if np.random.uniform() < 0.5:
+        return img, steering
+    return GuassianBlur().apply(img), steering

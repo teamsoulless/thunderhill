@@ -11,18 +11,21 @@ import eventlet.wsgi
 from PIL import Image
 from flask import Flask
 from io import BytesIO
-
+from scipy.misc.pilutil import imresize
+from keras.preprocessing.image import img_to_array
 from keras.models import load_model
 import h5py
 from keras import __version__ as keras_version
-from transformations import Preproc
-import cv2
 
 sio = socketio.Server()
 app = Flask(__name__)
 model = None
 prev_image_array = None
 
+def resize_image(image):
+    cropped_image = image[32:135, :]
+    resized_image = imresize(cropped_image, .90, interp='bilinear', mode=None)
+    return img_to_array(resized_image)
 
 class SimplePIController:
     def __init__(self, Kp, Ki):
@@ -61,25 +64,12 @@ def telemetry(sid, data):
         speed = data["speed"]
         # The current image from the center camera of the car
         imgString = data["image"]
-        # image = Image.open(BytesIO(base64.b64decode(imgString)))
-        # image_array = np.asarray(image)
-        # steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
-        #
-        # throttle = controller.update(float(speed))
-        #
-        # print(steering_angle, throttle)
-        # send_control(steering_angle, throttle)
         image = Image.open(BytesIO(base64.b64decode(imgString)))
-        # image_array = cv2.cvtColor(np.asarray(image), code=cv2.COLOR_RGB2BGR)
+        image_array = resize_image(np.asarray(image))
+        steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
 
-        image_array = np.asarray(image)
-        image_array = Preproc(image_array)
+        throttle = controller.update(float(speed) / 2.5)
 
-        transformed_image_array = image_array[None, :, :, :]
-        # This model currently assumes that the features of the model are just the images. Feel free to change this.
-        steering_angle = float(model.predict(transformed_image_array, batch_size=1))
-        # The driving model currently just outputs a constant throttle. Feel free to edit this.
-        throttle = args.throttle
         print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
@@ -123,15 +113,18 @@ if __name__ == '__main__':
         default='',
         help='Path to image folder. This is where the images from the run will be saved.'
     )
-
-    parser.add_argument('--throttle', type=float, default=0.3, help='Throttle')
-
     args = parser.parse_args()
 
     # check that model Keras version is same as local Keras version
     f = h5py.File(args.model, mode='r')
     model_version = f.attrs.get('keras_version')
     keras_version = str(keras_version).encode('utf8')
+
+    print('Model Version: ', model_version)
+    print('Keras Version : ', keras_version)
+
+    # My keras version is always None, I made sure I had the right keras build and only one build .. something is off
+    # here so adding an additional check.
 
     if model_version != keras_version:
         print('You are using Keras version ', keras_version,
