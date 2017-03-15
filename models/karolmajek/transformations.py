@@ -154,7 +154,7 @@ class GuassianBlur(Transform):
 
     def getRadius(self):
         if self.radius is None:
-            self.radius = np.random.choice([1, 3, 5])
+            return np.random.choice([3, 5, 7])
         return self.radius
 
     def toString(self):
@@ -179,6 +179,7 @@ def Preproc(img):
     if img.size == 0:
         return img
 
+
     height, width, depth = img.shape
 
     src = np.float32([[100, 75], [0, 120], [200, 75], [320, 120]])
@@ -187,12 +188,14 @@ def Preproc(img):
     preproc = Preprocess([
         # RGB2HSV(),
         # Crop(0, width, 200, height),  # x_min, x_max, y_min, y_max
+        Resize(320,160),
         Skew(src, dst),
-        # Resize(200, 66),
-        Normalizer(a=-1, b=1)
+        # Normalizer(a=-0.5, b=0.5)
     ])
 
-    return preproc.apply(img)
+
+
+    return preproc.apply(img)/255.0-0.5
 
 
 class Flip(Transform):
@@ -234,7 +237,7 @@ def Shift(_img, by_x=0, by_y=0):
     elif by_x >= 0 and by_y < 0:
         img = Crop(by_x, width, 0, height+by_y).apply(img)
     elif by_x < 0 and by_y < 0:
-        img = Crop(0, width + by_x, 0, height+by_y).apply(img)
+        img = Crop(0, width + by_x, 0, height + by_y).apply(img)
     elif by_x < 0 and by_y >= 0:
         img = Crop(0, width + by_x, by_y, height).apply(img)
     img = Resize(width, height).apply(img)
@@ -243,14 +246,12 @@ def Shift(_img, by_x=0, by_y=0):
 """
 Randomly shift images
 """
-def RandomShift(img, steering, adjustment=0.005):
-    if np.random.uniform() < 0.5:
-        return img, steering
-    tx = np.random.randint(-30, 30)
-    steering += tx*adjustment
-    steering = min(steering, 1)
-    steering = max(steering, -1)
-    return Shift(img, tx, 0), steering
+def RandomShift(img, steering):
+    # if np.random.uniform() < 0.5:
+    #     return img, steering
+    tx = np.random.randint(-100, 100)
+    steering += tx*0.001
+    return Shift(img, tx, np.random.randint(-50, 50)), steering
 
 """
 Randomly flip the images
@@ -259,30 +260,19 @@ def RandomFlip(img, steering):
     if np.random.uniform() < 0.5:
         return img, steering
     return Flip().apply(img), -steering
+
+def brigthness(image, brigthness):
+    table = np.array([i+ brigthness    for i in np.arange(0, 256)])
+    table[table<0]=0
+    table[table>255]=255
+    table=table.astype("uint8")
+    # apply gamma correction using the lookup table
+    return cv2.LUT(image, table)
 """
 Randomly change the brightness
 """
 def RandomBrightness(img, steering):
-    if np.random.uniform() < 0.5:
-        return img, steering
-
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-    img[:, :, 2] = img[:, :, 2] * np.random.uniform(0.25, 1.01)
-    return cv2.cvtColor(img, cv2.COLOR_HSV2RGB), steering
-
-"""
-Randomly rotate the images.
-"""
-def RandomRotation(img, steering):
-    if np.random.uniform() < 0.5:
-        return img, steering
-    rot_angle = np.random.uniform(-1, 1)
-    return Rotate(rot_angle).apply(img), steering
-
-"""
-Randomly blur the images
-"""
-def RandomBlur(img, steering):
-    if np.random.uniform() < 0.5:
-        return img, steering
-    return GuassianBlur().apply(img), steering
+    # if np.random.uniform() < 0.5:
+    #     return img, steering
+    # img[:, :, :] = img[:, :, :] * np.random.uniform()*2
+    return brigthness(img,-100+200*np.random.uniform()), steering

@@ -20,9 +20,12 @@
 6. Open PolySync Configurator: <br/>
 `polysync-core-sdf-configurator` <br/>
 Make sure that you can see a configuration for PolySync Kia Soul, close the configurator
-7. Open PolySync Studio: <br/>
+7. Copy the kia interface file from polysync/lib/ folder.
+8. Open PolySync Studio: <br/>
 `polysync-core-studio`
-8. [Import session](http://docs.polysync.io/articles/runtime/managing-the-runtime/replay-logs-and-visualize-sample-data-2-0-pr-8/) from _1464470620356308_ folder and replay
+9. [Import session](http://docs.polysync.io/articles/runtime/managing-the-runtime/replay-logs-and-visualize-sample-data-2-0-pr-8/) from _1464470620356308_ folder and replay
+
+If import does not work correctly you may just copy the data folder manually.
 
 *NOTE: You will not be able to view the video from the Polysync Studio.  This is a known issue.*
 
