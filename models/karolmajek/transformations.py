@@ -190,10 +190,12 @@ def Preproc(img):
         # Crop(0, width, 200, height),  # x_min, x_max, y_min, y_max
         Resize(320,160),
         Skew(src, dst),
-        Normalizer(a=-0.5, b=0.5)
+        # Normalizer(a=-0.5, b=0.5)
     ])
 
-    return preproc.apply(img)
+
+
+    return preproc.apply(img)/255.0-0.5
 
 
 class Flip(Transform):
@@ -245,11 +247,11 @@ def Shift(_img, by_x=0, by_y=0):
 Randomly shift images
 """
 def RandomShift(img, steering):
-    if np.random.uniform() < 0.5:
-        return img, steering
-    tx = np.random.randint(-30, 30)
-    steering += tx*0.005
-    return Shift(img, tx, np.random.randint(-30, 30)), steering
+    # if np.random.uniform() < 0.5:
+    #     return img, steering
+    tx = np.random.randint(-100, 100)
+    steering += tx*0.001
+    return Shift(img, tx, np.random.randint(-50, 50)), steering
 
 """
 Randomly flip the images
@@ -259,11 +261,18 @@ def RandomFlip(img, steering):
         return img, steering
     return Flip().apply(img), -steering
 
+def brigthness(image, brigthness):
+    table = np.array([i+ brigthness    for i in np.arange(0, 256)])
+    table[table<0]=0
+    table[table>255]=255
+    table=table.astype("uint8")
+    # apply gamma correction using the lookup table
+    return cv2.LUT(image, table)
 """
 Randomly change the brightness
 """
 def RandomBrightness(img, steering):
-    if np.random.uniform() < 0.5:
-        return img, steering
-    img[:, :, 2] = img[:, :, 2] * np.random.uniform()
-    return img, steering
+    # if np.random.uniform() < 0.5:
+    #     return img, steering
+    # img[:, :, :] = img[:, :, :] * np.random.uniform()*2
+    return brigthness(img,-100+200*np.random.uniform()), steering
