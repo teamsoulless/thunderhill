@@ -34,12 +34,20 @@ def generate_thunderhill_batches(df, batch_size):
         for idx, row in enumerate(df):
             steering_angle = row[1]
             img = cv2.imread(row[0])
-            img, steering_angle = RandomShift(img, steering_angle)
-            img, steering_angle = RandomFlip(img, steering_angle)
-            img, steering_angle = RandomBrightness(img, steering_angle)
-            img = Preproc(img)
-            batch_x.append(np.reshape(img, (1, HEIGHT, WIDTH, DEPTH)))
-            batch_y.append([steering_angle])
+            img1, steering_angle1 = RandomFlip(img.copy(), steering_angle)
+            img1, steering_angle1 = RandomBrightness(img1, steering_angle1)
+            img1 = Preproc(img1)
+            img1, steering_angle1 = RandomShift(img1, steering_angle1)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            if False:
+                imgp = Preproc(img)
+                imgshow=(np.concatenate((imgp,img1),axis=1)+0.5)
+                cv2.putText(imgshow,'%.3f'%(steering_angle),(10,50), font, 1,(0,0,255),1,cv2.LINE_AA)
+                cv2.putText(imgshow,'%.3f'%(steering_angle1),(330,50), font, 1,(0,0,255),1,cv2.LINE_AA)
+                cv2.imshow('img',imgshow)
+                cv2.waitKey(0)
+            batch_x.append(np.reshape(img1, (1, HEIGHT, WIDTH, DEPTH)))
+            batch_y.append([steering_angle1])
             if len(batch_x) == batch_size:
                 batch_x, batch_y = shuffle(batch_x, batch_y)
                 yield np.vstack(batch_x), np.vstack(batch_y)
