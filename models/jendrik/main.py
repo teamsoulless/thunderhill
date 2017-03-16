@@ -278,7 +278,7 @@ def main():
         endModel.load_weights('model.ckpt')
         endModel.save('initModel.h5')
         
-    endModel = load_model('model.h5', custom_objects={'customLoss':customLoss})
+    endModel = load_model('initModel.h5', custom_objects={'customLoss':customLoss})
     print(endModel.evaluate_generator(valGenerator, val_samples=len(dataVal)))
     print(endModel.evaluate_generator(generateImagesFromPaths(dataTest, batchSize, imShape, [3], transform, angles, images), 
                                       val_samples=len(dataTest)))
