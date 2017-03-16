@@ -6,6 +6,7 @@ Created on Feb 19, 2017
 
 import cv2
 import numpy as np
+import time
 
 def minValImage(arr, channel = 0):
     """
@@ -71,31 +72,61 @@ def applyNormalisation(image):
         Output:
             an array of images with the channels RGBGray
     """
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-    image[:,:,3] = clahe.apply(image[:,:,3])
-    spread =  np.max(np.max(image,axis=0), axis=0)-np.min(np.min(image,axis=0), axis=0)
-    spread = np.array([val if val > 0 else 1 for val in spread])
-    image = (2.*(image[:,:] - np.min(np.min(image,axis=0), axis=0))[:,:]/(spread)) -1
-    return image
+    #clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    #image[:,:,3] = clahe.apply(image[:,:,3])
+    return (image - 128.) / 128.
 
-def preprocessImage(image, transform):
+def augmentImage(image, steering):
+    rot = np.random.randint(-2,3)
+    image = rotateImage(image, rot)
+    # Add a part of the rotated angle, as it is counted counter-clockwise.
+    # If you turn counter-clockwise, this looks like the car would be more left
+    # and needs to drive to the right -> add some angle 
+    # divide it by the maximum of the steering angle in deg ->25
+    steering += .2*rot/(10)
+    shiftHor = np.random.randint(-20,21)
+    shiftVer = np.random.randint(-10,11)
+    image = shiftImg(image, shiftHor, shiftVer)
+    steering *= (1-shiftVer/100)
+    steering += .2*shiftHor/(20)
+    steering = min(max(steering, -1),1)
+    #image = lightImage(blurImage(image))
+    return image, steering
+
+def blurImage(img):
+    # Blur image with random kernel
+    kernel_size = np.random.randint(1, 5)
+    if kernel_size % 2 != 1:
+        kernel_size += 1
+    return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+
+
+def lightImage(img):
+    # HSV brightness transform
+    img = cv2.cvtColor(img,cv2.COLOR_RGB2HSV)
+    brightness = np.random.uniform(0.5,1.1)
+    img[:,:,2] = img[:,:,2]*brightness
+    return cv2.cvtColor(img,cv2.COLOR_HSV2RGB)
+
+
+def preprocessImage(image):
     """
     This function represents the default preprocessing for 
     an image to prepare them for the network
     """
-    #image = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
-    image = cv2.convertScaleAbs(image, alpha=(1))
-    image = addGradientLayer(image, 7, (100,255), (0, np.pi/2))
-    #image = np.concatenate((image, transform(image)), axis=2)
-    image = image[image.shape[0]//3:,20:-20,:]
-    return applyNormalisation(image)
+    image = image[image.shape[0]*2//5:,:,:]
+    #image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    #image = cv2.convertScaleAbs(image, alpha=(1))
+    #image = addGradientLayer(image, 7, (100,255), (0, np.pi/2))
+    image = applyNormalisation(image)
+    return image
 
-def preprocessImages(arr, transform):
+def preprocessImages(arr):
     """
     This function represents the default preprocessing for 
     images to prepare them for the network
     """
-    return np.array([preprocessImage(image, transform) for image in arr])
+    return np.array([preprocessImage(image) for image in arr])
 
 
 def perspectiveTransform(img, M):
