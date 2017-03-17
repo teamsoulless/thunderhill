@@ -94,3 +94,12 @@ ENV/
 devel
 setup.bash
 logs
+
+# japata
+.idea
+models/japata/env
+models/japata/logs/*.japata
+models/japata/models/*.h5
+models/japata/runs/*
+models/japata/thunderhill_data/*
+models/japata/keep/*
