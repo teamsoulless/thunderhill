@@ -37,28 +37,28 @@ def nvidia_with_bn_and_dropout(params):
 
         # 5x22x48
         Convolution2D(64, 3, 3, init='he_normal'),
-        BatchRenormalization(),
-        # Activation('elu'),
         Dropout(params.keep_prob),
+        BatchRenormalization(),
+        Activation('elu'),
 
         # 3x20x64
         Convolution2D(64, 3, 3, init='he_normal'),
+        Dropout(params.keep_prob),
         BatchRenormalization(),
         Activation('elu'),
-        # Dropout(params.keep_prob),
 
         # 1x18x64
         Flatten(),
 
         Dense(100),
+        Dropout(params.keep_prob),
         Activation('elu'),
-        # Dropout(params.keep_prob),
 
         Dense(50),
         Activation('elu'),
 
         Dense(10),
-        Activation('tanh'),
+        Activation('elu'),
 
         Dense(1)
     ])
