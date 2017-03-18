@@ -120,7 +120,7 @@ if __name__ == '__main__':
         print("No model found")
 
 
-    checkpointer = ModelCheckpoint(os.path.join(args.output, 'weights.{epoch:02d}-{val_loss:.3f}.hdf5'), monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False, mode='auto', period=1)
+    checkpointer = ModelCheckpoint(os.path.join(args.output, 'weights.{epoch:04d}-{val_loss:.3f}.hdf5'), monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False, mode='auto', period=1)
     # early_stop = EarlyStopping(monitor='val_loss', patience=50, verbose=0, mode='auto')
     logger = CSVLogger(filename=os.path.join(args.output, 'history.csv'))
 
