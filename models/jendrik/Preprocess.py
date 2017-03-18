@@ -77,18 +77,18 @@ def applyNormalisation(image):
     return (image - 128.) / 128.
 
 def augmentImage(image, steering):
-    rot = np.random.randint(-2,3)
+    rot = np.random.randint(-20,21)
     image = rotateImage(image, rot)
     # Add a part of the rotated angle, as it is counted counter-clockwise.
     # If you turn counter-clockwise, this looks like the car would be more left
     # and needs to drive to the right -> add some angle 
     # divide it by the maximum of the steering angle in deg ->25
-    steering += .2*rot/(10)
-    shiftHor = np.random.randint(-20,21)
+    steering += .2*rot/(20)
+    shiftHor = np.random.randint(-30,31)
     shiftVer = np.random.randint(-10,11)
     image = shiftImg(image, shiftHor, shiftVer)
-    steering *= (1-shiftVer/100)
-    steering += .2*shiftHor/(20)
+    #steering *= (1-shiftVer/100)
+    steering += .4*shiftHor/(30)
     steering = min(max(steering, -1),1)
     #image = lightImage(blurImage(image))
     return image, steering
