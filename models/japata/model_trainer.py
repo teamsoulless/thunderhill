@@ -49,29 +49,19 @@ params = Parameters(
   )
 
 
-path = os.getcwd() + '/'
+# NOTE: Steering angles
+data = utils.load_polysync_paths()
 
-paths, angs = utils.concat_all_cameras(
-    data=utils.load_data(path + 'thunderhill_data/dataset_sim_001_km_320x160/', 'driving_log.csv'),
-    condition_lambda=lambda x: abs(x) < 1e-5,
-    keep_percent=0.3,
-    drop_camera='both'
+paths, angs = utils.keep_n_percent_of_data_where(
+    data=data['center'],
+    values=data['angles'],
+    condition_lambda=lambda x: abs(x) < 1e-3,
+    percent=0.4
   )
-
-rec_paths, rec_angs = utils.concat_all_cameras(
-    data=utils.load_data(path + 'thunderhill_data/dataset_sim_002_km_320x160_recovery/', 'driving_log.csv'),
-    condition_lambda=lambda x: abs(x) < 1e-5,
-    keep_percent=0.3,
-    drop_camera='both'
-  )
-
-# Aggregate all sets into one.
-all_paths = np.concatenate((paths, rec_paths), axis=0)
-all_angs = np.concatenate((angs, rec_angs), axis=0)
 
 train_paths, val_paths, train_angs, val_angs = utils.split_data(
-    features=all_paths,
-    labels=all_angs,
+    features=paths,
+    labels=angs,
     test_size=0.15
   )
 
