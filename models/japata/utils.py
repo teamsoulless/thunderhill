@@ -36,7 +36,7 @@ def load_polysync_paths():
     cwd = os.getcwd() + '/thunderhill_data/'
     data_files = [
         {'path': 'dataset_polysync_1464466368552019/', 'start_frame': 400, 'stop_frame': 6650},
-        {'path': 'dataset_polysync_1464470620356308/', 'start_frame': 250, 'stop_frame': 4480},
+        # {'path': 'dataset_polysync_1464470620356308/', 'start_frame': 250, 'stop_frame': 4480},
         {'path': 'dataset_polysync_1464552951979919/', 'start_frame': 350, 'stop_frame': 4550},
       ]
 
@@ -458,7 +458,7 @@ def val_augmentor(ims, vals):
            np.concatenate((vals, flipped_vals), axis=0)
 
 
-def batch_generator(ims, angs, batch_size, augmentor, kwargs={}, validation=False):
+def batch_generator(ims, angs, batch_size, augmentor, kwargs={}, validation=False, polysync=False):
     """
     Continuously generates batches from the provided images paths and angles.
 
@@ -508,9 +508,14 @@ def batch_generator(ims, angs, batch_size, augmentor, kwargs={}, validation=Fals
             loaded_ims = []
             for im_path in batch_x:
                 im = cv2.cvtColor(cv2.imread(im_path), cv2.COLOR_BGR2RGB)
-                if im.shape != (160, 320, 3):
+
+                if polysync:
+                    im = cv2.flip(im, 0)
+                    im = im[:, 375:1950 - 375]
                     im = cv2.resize(im, (320, 160))
+
                 loaded_ims.append(im)
+
             batch_x = np.array(loaded_ims)
 
             # Augment the images with the given function

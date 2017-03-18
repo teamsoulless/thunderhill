@@ -62,7 +62,7 @@ paths, angs = utils.keep_n_percent_of_data_where(
 train_paths, val_paths, train_angs, val_angs = utils.split_data(
     features=paths,
     labels=angs,
-    test_size=0.15
+    test_size=0.1
   )
 
 print('Training size: %d | Validation size: %d' % (train_paths.shape[0], val_paths.shape[0]))
@@ -104,16 +104,16 @@ callbacks = [
 
 history = model.fit_generator(
     generator=utils.batch_generator(ims=train_paths, angs=train_angs, batch_size=params.batch_size,
-                                    augmentor=utils.augment_image, kwargs=params.kwargs),
+                                    augmentor=utils.augment_image, kwargs=params.kwargs, polysync=True),
     samples_per_epoch=25600,
     nb_epoch=params.max_epochs,
     # Halve the batch size, as `utils.val_augmentor` doubles the batch size by flipping the images and angles
     validation_data=utils.batch_generator(ims=val_paths, angs=val_angs, batch_size=params.batch_size//2,
-                                          augmentor=utils.val_augmentor, validation=True),
+                                          augmentor=utils.val_augmentor, validation=True, polysync=True),
     # Double the size of the validation set, as we are flipping the images to balance the right/left
     # distribution.
     nb_val_samples=2*val_angs.shape[0],
     callbacks=callbacks
   )
 
-print('Finished at: ' + str(datetime.now()))
+print('\nFinished at: ' + str(datetime.now()) + '\n')
