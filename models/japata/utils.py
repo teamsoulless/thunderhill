@@ -8,11 +8,11 @@ from decorators import n_images
 
 
 def setGlobals():
-    global _color_space, _reshape, _gradients, _src, _dst
+    global _color_space, _reshape, _ycrop, _src, _dst
 
     _color_space = {'src': cv2.COLOR_HSV2RGB, 'dst': cv2.COLOR_RGB2HSV}
     _reshape = {'src': (320, 160), 'dst': (320, 160)}
-    _gradients = {'cond': False, 'channel': 2}
+    _ycrop = {'top': None, 'bottom': None}
     _src = np.array([
         [110, 90],
         [0, 160],
@@ -28,7 +28,7 @@ def setGlobals():
 
 
 def getGlobals():
-    return _color_space, _reshape, _gradients, _src, _dst
+    return _color_space, _reshape, _ycrop, _src, _dst
 
 
 def load_data(path, file):
@@ -81,18 +81,12 @@ def keep_n_percent_of_data_where(data, values, condition_lambda, percent):
     """
     assert data.shape[0] == values.shape[0], 'Different # of data points and values.'
 
-    cond_true = condition_lambda(values)
-    data_true, data_false = data[cond_true, ...], data[~cond_true, ...]
-    val_true, val_false = values[cond_true], values[~cond_true]
+    true_idx = np.where(condition_lambda(values))[0]
+    num_to_remove = int((1 - percent) * true_idx.shape[0])
+    idx_to_remove = np.random.choice(true_idx, num_to_remove, replace=False)
 
-    cutoff = int(percent * data_true.shape[0])
-    # Shuffle before clipping the top (1-n)%
-    data_true, val_true = shuffle(data_true, val_true)
-    # Only keep n% of the data points where the condition is true
-    clipped_data_true, clipped_val_true = data_true[:cutoff, ...], val_true[:cutoff]
-
-    filtered_data = np.concatenate((data_false, clipped_data_true), axis=0)
-    filtered_values = np.concatenate((val_false, clipped_val_true), axis=0)
+    filtered_data = np.delete(data, idx_to_remove, axis=0)
+    filtered_values = np.delete(values, idx_to_remove, axis=0)
     return filtered_data, filtered_values
 
 
@@ -185,7 +179,7 @@ def concat_all_cameras(data, condition_lambda, keep_percent, drop_camera=''):
     return filtered_paths, filtered_angs
 
 
-def split_data(features, labels, test_size=0.2, shuffle_return=True):
+def split_data(features, labels, test_size=0.2, shuffle_return=False):
     """
     Splits the dataset and labels into training and testing sets, with proportions (1-test_size) and test_size.
 
@@ -212,11 +206,14 @@ def process_image(im):
     """
     assert im.ndim == 3 and im.shape[2] == 3, 'Must be a BGR image with shape (h, w, 3)'
 
+    if _ycrop['top'] is not None or _ycrop['bottom'] is not None:
+        y_top = 0 or _ycrop['top']
+        y_bottom = _reshape['src'][1] - (0 or _ycrop['bottom'])
+        im = im[y_top:y_bottom, 0:_reshape['src'][0]]
+
     if _color_space is not None:
         im = cv2.cvtColor(im, _color_space['dst'])
-    if _gradients['cond']:
-        im = cv2.Sobel(im[..., _gradients['channel']], cv2.CV_64F, 1, 1, ksize=11)
-        im = abs(im)
+
     if _src is not None and _dst is not None:
         try:
             if process_image.M is None:
@@ -225,17 +222,22 @@ def process_image(im):
             process_image.M = cv2.getPerspectiveTransform(_src, _dst)
 
         im = cv2.warpPerspective(im, process_image.M, (im.shape[1], im.shape[0]))
+
     if _reshape['src'] is not None and _reshape['dst'] is not None:
         im = cv2.resize(im, _reshape['dst'])
 
     k = np.random.choice((1, 3, 5))
     im = cv2.GaussianBlur(im, (k, k), 0)
-    return im
+    return im.astype(np.uint8)
 
 
 def rectify_image(im):
     if _reshape['src'] is not None and _reshape['dst'] is not None:
-        im = cv2.resize(im, _reshape['src'])
+        original_size = _reshape['src']
+        original_size = (original_size[0],
+                         original_size[1] - sum([0 if val is None else val for val in _ycrop.values()]))
+        im = cv2.resize(im, original_size)
+
     if _src is not None and _dst is not None:
         try:
             if rectify_image.M is None:
@@ -244,9 +246,18 @@ def rectify_image(im):
             rectify_image.M = cv2.getPerspectiveTransform(_dst, _src)
 
         im = cv2.warpPerspective(im, rectify_image.M, (im.shape[1], im.shape[0]))
-    if _color_space is not None and not _gradients['cond'] and im.ndim == 3 and im.shape[2] == 3:
+
+    if _color_space is not None and im.ndim == 3 and im.shape[2] == 3:
         im = cv2.cvtColor(im, _color_space['src'])
-    return im
+
+    if _ycrop['top'] is not None or _ycrop['bottom'] is not None:
+        y_top = 0 or _ycrop['top']
+        y_bottom = (0 or _ycrop['bottom'])
+
+        y_top_buffer = np.zeros([y_top, _reshape['src'][0], 3])
+        y_bottom_buffer = np.zeros([y_bottom, _reshape['src'][0], 3])
+        im = np.concatenate((y_top_buffer, im, y_bottom_buffer), axis=0)
+    return im.astype(np.uint8)
 
 
 @n_images  # Decorator to generalize single image method to multiple images
