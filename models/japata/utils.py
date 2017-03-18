@@ -1,5 +1,6 @@
-import numpy as np
+import os
 import cv2
+import numpy as np
 import pandas as pd
 
 from sklearn.model_selection import train_test_split
@@ -29,6 +30,34 @@ def setGlobals():
 
 def getGlobals():
     return _color_space, _reshape, _ycrop, _src, _dst
+
+
+def load_polysync_paths():
+    cwd = os.getcwd() + '/thunderhill_data/'
+    data_files = [
+        {'path': 'dataset_polysync_1464466368552019/', 'start_frame': 400, 'stop_frame': 6650},
+        {'path': 'dataset_polysync_1464470620356308/', 'start_frame': 250, 'stop_frame': 4480},
+        {'path': 'dataset_polysync_1464552951979919/', 'start_frame': 350, 'stop_frame': 4550},
+      ]
+
+    images = np.array([])
+    angles = np.array([])
+    for file in data_files:
+        data_folder = cwd + file['path']
+        data = pd.read_csv(data_folder + 'output.txt')
+        new_header = data.loc[0]
+        data = data[1:]
+        data.rename(columns=new_header)
+
+        filtered_angs = np.array(data['steering'])[file['start_frame']:file['stop_frame']]
+        filtered_angs = np.array([float(ang) for ang in filtered_angs])
+
+        filtered_ims = np.array(data['path'])[file['start_frame']:file['stop_frame']]
+        filtered_ims = np.array([data_folder + im for im in filtered_ims])
+
+        images = np.concatenate((images, filtered_ims))
+        angles = np.concatenate((angles, filtered_angs))
+    return {'center': images, 'angles': angles}
 
 
 def load_data(path, file):
