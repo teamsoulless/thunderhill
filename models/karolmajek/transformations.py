@@ -115,7 +115,7 @@ class Skew(Transform):
         img_size = (img.shape[1], img.shape[0])
         self.M = cv2.getPerspectiveTransform(self.pts1, self.pts2)
         self.invM = cv2.getPerspectiveTransform(self.pts2, self.pts1)
-        dst = cv2.warpPerspective(img, self.M, img_size, flags=cv2.INTER_LINEAR)
+        dst = cv2.warpPerspective(img, self.M, img_size, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
         return dst
 
     def toString(self):
@@ -179,24 +179,62 @@ def Preproc(img):
     if img.size == 0:
         return img
 
+    img=img.astype(np.float32)
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    xyz = cv2.cvtColor(img, cv2.COLOR_BGR2XYZ)
 
-    height, width, depth = img.shape
-
-    src = np.float32([[100, 75], [0, 120], [200, 75], [320, 120]])
-    dst = np.float32([[80, 0], [100, 160], [215, 0], [215, 160]])
-
+    img=-0.5+img/255
+    #
+    # kernel_size = 5
+    # scale = 1
+    # delta = 0
+    # ddepth = cv2.CV_16S
+    #
+    # # hsv[:,:,1] = cv2.GaussianBlur(hsv[:,:,1],(5,5),0)
+    # hsv[:,:,2] = cv2.GaussianBlur(hsv[:,:,2],(5,5),0)
+    #
+    # gray_lap = cv2.Laplacian(hsv[:,:,2],ddepth,ksize = kernel_size,scale = scale,delta = delta)
+    # lap_v = cv2.convertScaleAbs(gray_lap)
+    #
+    # _min=np.min(lap_v)
+    # _max=np.max(lap_v)
+    # lap_v=(lap_v-_min)/(_max-_min)
+    #
+    # # lap_v[lap_v[:,:]>=0.5]=1
+    # lap_v[lap_v[:,:]<0.4]=0
+    #
+    # red=img[:,:,2]
+    # green=img[:,:,1]
+    # blue=img[:,:,0]
+    #
+    # red[:,:]=hsv[:,:,2]
+    # green[:,:]=xyz[:,:,1]
+    # blue[:,:]=lap_v
+    #
+    #
+    # red=(red-np.min(red))/(np.max(red)-np.min(red))
+    # green=(green-np.min(green))/(np.max(green)-np.min(green))
+    # blue=(blue-np.min(blue))/(np.max(blue)-np.min(blue))
+    #
+    # img=np.concatenate((blue.reshape(blue.shape[0],blue.shape[1],1),green.reshape(green.shape[0],green.shape[1],1),red.reshape(red.shape[0],red.shape[1],1)),axis=2)
+    #
+    # img=img-0.5
+    #
+    # height, width, depth = img.shape
+    #
+    # src = np.float32([[100, 75], [0, 120], [200, 75], [320, 120]])
+    # dst = np.float32([[80, 0], [100, 160], [215, 0], [215, 160]])
+    #
     preproc = Preprocess([
         # RGB2HSV(),
         # Crop(0, width, 200, height),  # x_min, x_max, y_min, y_max
         Resize(320,160),
-        Skew(src, dst),
+        # Skew(src, dst),
         # Normalizer(a=-0.5, b=0.5)
     ])
+    tmp=preproc.apply(img)
 
-
-
-    return preproc.apply(img)/255.0-0.5
-
+    return tmp
 
 class Flip(Transform):
 
@@ -249,17 +287,18 @@ Randomly shift images
 def RandomShift(img, steering):
     # if np.random.uniform() < 0.5:
     #     return img, steering
-    tx = np.random.randint(-100, 100)
-    steering += tx*0.001
-    return Shift(img, tx, np.random.randint(-50, 50)), steering
+    tx = np.random.randint(-5,5) * 30
+    # steering += tx*0.004
+    steering += tx*0.005
+    return Shift(img, tx, np.random.randint(-50, 10)), steering
 
 """
 Randomly flip the images
 """
 def RandomFlip(img, steering):
-    if np.random.uniform() < 0.5:
-        return img, steering
-    return Flip().apply(img), -steering
+    # if np.random.uniform() < 0.5:
+    #     return img, steering
+    return [(img, steering),(Flip().apply(img), -steering)]
 
 def brigthness(image, brigthness):
     table = np.array([i+ brigthness    for i in np.arange(0, 256)])

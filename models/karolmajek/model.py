@@ -5,17 +5,19 @@ import logging
 from keras.layers.core import Dense, Activation, Flatten, Dropout
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
-from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping
+from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping, TensorBoard
 from keras.applications.vgg16 import VGG16
 from keras.preprocessing import image
 from keras.applications.vgg16 import preprocess_input
 from keras.layers import Input, Dense, GlobalAveragePooling2D, Flatten,Lambda,ELU
 from keras.models import Model, Sequential
 from keras.regularizers import l2
+from keras import backend as K
 import argparse
 import os
-from loader import generate_thunderhill_batches, getDataFromFolder
+from loader import generate_thunderhill_batches, getDataFromFolder, genSim001, genSim002, genSession5,genPolysync0,genAll
 from config import *
+import time
 
 """ Usefeful link
 		ImageDataGenerator 		- https://keras.io/preprocessing/image/
@@ -28,6 +30,13 @@ from config import *
 		Dropout 5x5
 """
 
+
+def customLoss(y_true, y_pred):
+    """
+        This loss function adds some constraints on the angle to
+        keep it small, if possible
+    """
+    return K.mean(K.square(y_pred - y_true), axis=-1) #+.01* K.mean(K.square(y_pred), axis = -1)
 
 def NvidiaModel(learning_rate, dropout):
     input_model = Input(shape=(HEIGHT, WIDTH, DEPTH))
@@ -52,11 +61,13 @@ def NvidiaModel(learning_rate, dropout):
     x = ELU()(x)
     predictions = Dense(1)(x)
     model = Model(input=input_model, output=predictions)
-    model.compile(optimizer='adam', loss='mse')
+    # model.compile(optimizer='adam', loss='mse')
+    model.compile(optimizer='adam', loss=customLoss)#, metrics=['mse'])
     print(model.summary())
     return model
 
 if __name__ == '__main__':
+
 
     parser = argparse.ArgumentParser(description='Steering angle model trainer')
     parser.add_argument('--batch', type=int, default=BATCH_SIZE, help='Batch size.')
@@ -78,14 +89,22 @@ if __name__ == '__main__':
     print('Model: {}'.format(args.output))
     print('-------------')
 
+    args.output='logs/'+args.output+'_%d'%int(time.time())
+
     if not os.path.exists(args.output):
         os.makedirs(args.output)
 
+    import tensorflow as tf
+    from keras.backend.tensorflow_backend import set_session
+    config = tf.ConfigProto()
+    config.gpu_options.per_process_gpu_memory_fraction = 0.8
+    set_session(tf.Session(config=config))
+
     # ROOT = '/Users/nando/Downloads/thunderhill_data/dataset_sim_000_km_few_laps'
     # df_train, df_val = __train_test_split('{}/driving_log.csv'.format(ROOT), False)
-    df_train, df_val = getDataFromFolder(args.dataset)
-    print('TRAIN:', len(df_train))
-    print('VALIDATION:', len(df_val))
+    # df_train, df_val = getDataFromFolder(args.dataset)
+    # print('TRAIN:', len(df_train))
+    # print('VALIDATION:', len(df_val))
 
     model = NvidiaModel(args.alpha, args.dropout)
 
@@ -101,15 +120,17 @@ if __name__ == '__main__':
         print("No model found")
 
 
-    checkpointer = ModelCheckpoint(os.path.join(args.output, 'weights.{epoch:02d}-{val_loss:.3f}.hdf5'))
-    early_stop = EarlyStopping(monitor='val_loss', patience=2, verbose=0, mode='auto')
+    checkpointer = ModelCheckpoint(os.path.join(args.output, 'weights.{epoch:02d}-{val_loss:.3f}.hdf5'), monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False, mode='auto', period=1)
+    # early_stop = EarlyStopping(monitor='val_loss', patience=50, verbose=0, mode='auto')
     logger = CSVLogger(filename=os.path.join(args.output, 'history.csv'))
 
+    board=TensorBoard(log_dir=args.output, histogram_freq=0, write_graph=True, write_images=True)
+
     history = model.fit_generator(
-        generate_thunderhill_batches(df_train, args.batch),
+        generate_thunderhill_batches(genAll(args.dataset), args.batch),
         nb_epoch=args.epoch,
-        samples_per_epoch=len(df_train),
-        validation_data=generate_thunderhill_batches(df_val, args.batch),
-        nb_val_samples=len(df_val),
-        callbacks=[checkpointer, early_stop, logger]
+        samples_per_epoch=128*50,
+        validation_data=generate_thunderhill_batches(genSim001(args.dataset), args.batch),
+        nb_val_samples=128*4,
+        callbacks=[checkpointer, logger, board]#, early_stop]
     )
