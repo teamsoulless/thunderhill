@@ -43,9 +43,9 @@ params = Parameters(
     # Model settings
     l2_reg=0.0, keep_prob=0.5,
     # Optimizer settings
-    learning_rate=1e-4, epsilon=1e-8, decay=0.0,
+    learning_rate=3e-4, epsilon=1e-8, decay=0.0,
     # Training settings
-    min_delta=1e-4, patience=4, kwargs={'prob': 1.0}
+    min_delta=0.0, patience=4, kwargs={'prob': 1.0}
   )
 
 
@@ -65,7 +65,7 @@ train_paths, val_paths, train_angs, val_angs = utils.split_data(
     test_size=0.1
   )
 
-print('Training size: %d | Validation size: %d' % (train_paths.shape[0], val_paths.shape[0]))
+print('\nTraining size: %d | Validation size: %d\n' % (train_paths.shape[0], val_paths.shape[0]))
 
 
 # Model construction
