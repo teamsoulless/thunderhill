@@ -63,23 +63,33 @@ class BatchRenormalization(Layer):
         - [Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift](https://arxiv.org/abs/1502.03167)
     """
 
-    def __init__(self, epsilon=1e-3, mode=0, axis=-1, momentum=0.99,
-                 r_max_val=3., d_max_val=5., t_delta=1., weights=None, beta_init='zero',
-                 gamma_init='one', gamma_regularizer=None, beta_regularizer=None,
+    def __init__(self,
+                 epsilon=1e-3,
+                 mode=0,
+                 axis=-1,
+                 momentum=0.99,
+                 r_max_val=3.,
+                 d_max_val=5.,
+                 t_delta=1.,
+                 weights=None,
+                 beta_init='zero',
+                 gamma_init='one',
+                 gamma_regularizer=None,
+                 beta_regularizer=None,
                  **kwargs):
-        self.supports_masking = True
-        self.beta_init = initializations.get(beta_init)
-        self.gamma_init = initializations.get(gamma_init)
         self.epsilon = epsilon
         self.mode = mode
         self.axis = axis
         self.momentum = momentum
-        self.gamma_regularizer = regularizers.get(gamma_regularizer)
-        self.beta_regularizer = regularizers.get(beta_regularizer)
-        self.initial_weights = weights
         self.r_max_value = r_max_val
         self.d_max_value = d_max_val
         self.t_delta = t_delta
+        self.initial_weights = weights
+        self.beta_init = initializations.get(beta_init)
+        self.gamma_init = initializations.get(gamma_init)
+        self.gamma_regularizer = regularizers.get(gamma_regularizer)
+        self.beta_regularizer = regularizers.get(beta_regularizer)
+        self.supports_masking = True
         if self.mode == 0 or self.mode == 2:
             self.uses_learning_phase = True
         super(BatchRenormalization, self).__init__(**kwargs)
@@ -221,11 +231,14 @@ class BatchRenormalization(Layer):
         config = {'epsilon': self.epsilon,
                   'mode': self.mode,
                   'axis': self.axis,
-                  'gamma_regularizer': self.gamma_regularizer.get_config() if self.gamma_regularizer else None,
-                  'beta_regularizer': self.beta_regularizer.get_config() if self.beta_regularizer else None,
                   'momentum': self.momentum,
-                  'r_max_value': self.r_max_value,
-                  'd_max_value': self.d_max_value,
-                  't_delta': self.t_delta}
+                  'r_max_val': self.r_max_value,
+                  'd_max_val': self.d_max_value,
+                  't_delta': self.t_delta,
+                  'weights': self.initial_weights,
+                  'beta_init': self.beta_init,
+                  'gamma_init': self.gamma_init,
+                  'gamma_regularizer': self.gamma_regularizer.get_config() if self.gamma_regularizer else None,
+                  'beta_regularizer': self.beta_regularizer.get_config() if self.beta_regularizer else None,}
         base_config = super(BatchRenormalization, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

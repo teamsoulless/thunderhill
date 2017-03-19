@@ -49,30 +49,20 @@ params = Parameters(
   )
 
 
-path = os.getcwd() + '/'
+# NOTE: Steering angles
+data = utils.load_polysync_paths()
 
-paths, angs = utils.concat_all_cameras(
-    data=utils.load_data(path + 'thunderhill_data/dataset_sim_001_km_320x160/', 'driving_log.csv'),
-    condition_lambda=lambda x: abs(x) < 1e-5,
-    keep_percent=0.3,
-    drop_camera='both'
+paths, angs = utils.keep_n_percent_of_data_where(
+    data=data['center'],
+    values=data['angles'],
+    condition_lambda=lambda x: abs(x) < 1e-3,
+    percent=0.4
   )
-
-rec_paths, rec_angs = utils.concat_all_cameras(
-    data=utils.load_data(path + 'thunderhill_data/dataset_sim_002_km_320x160_recovery/', 'driving_log.csv'),
-    condition_lambda=lambda x: abs(x) < 1e-5,
-    keep_percent=0.3,
-    drop_camera='both'
-  )
-
-# Aggregate all sets into one.
-all_paths = np.concatenate((paths, rec_paths), axis=0)
-all_angs = np.concatenate((angs, rec_angs), axis=0)
 
 train_paths, val_paths, train_angs, val_angs = utils.split_data(
-    features=all_paths,
-    labels=all_angs,
-    test_size=0.15
+    features=paths,
+    labels=angs,
+    test_size=0.1
   )
 
 print('Training size: %d | Validation size: %d' % (train_paths.shape[0], val_paths.shape[0]))
@@ -114,16 +104,16 @@ callbacks = [
 
 history = model.fit_generator(
     generator=utils.batch_generator(ims=train_paths, angs=train_angs, batch_size=params.batch_size,
-                                    augmentor=utils.augment_image, kwargs=params.kwargs),
+                                    augmentor=utils.augment_image, kwargs=params.kwargs, polysync=True),
     samples_per_epoch=25600,
     nb_epoch=params.max_epochs,
     # Halve the batch size, as `utils.val_augmentor` doubles the batch size by flipping the images and angles
     validation_data=utils.batch_generator(ims=val_paths, angs=val_angs, batch_size=params.batch_size//2,
-                                          augmentor=utils.val_augmentor, validation=True),
+                                          augmentor=utils.val_augmentor, validation=True, polysync=True),
     # Double the size of the validation set, as we are flipping the images to balance the right/left
     # distribution.
     nb_val_samples=2*val_angs.shape[0],
     callbacks=callbacks
   )
 
-print('Finished at: ' + str(datetime.now()))
+print('\nFinished at: ' + str(datetime.now()) + '\n')
