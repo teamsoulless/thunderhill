@@ -32,7 +32,7 @@ class robot:
     #    creates robot and initializes location/orientation to 0, 0, 0
     #
 
-    def __init__(self, length = 1.):
+    def __init__(self, length = 3.):
         self.x = 0.0
         self.y = 0.0
         self.orientation = 0.0
@@ -78,7 +78,7 @@ class robot:
     #    distance = total distance driven, most be non-negative
 
     def move(self, steering, distance, 
-             tolerance = 0.001, max_steering_angle = pi / 4.0):
+             tolerance = 0.001, max_steering_angle = pi / 8.0):
 
         if steering > max_steering_angle:
             steering = max_steering_angle

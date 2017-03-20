@@ -11,7 +11,6 @@ from flask import Flask, render_template
 from io import BytesIO
 
 # Fix error with Keras and TensorFlow
-import tensorflow as tf
 import cv2
 import matplotlib.pyplot as plt
 
@@ -31,24 +30,28 @@ keypoints = []
 
 img = np.ones((1500,1800, 3), np.uint8) 
 
-for idx, p in enumerate (position_data):
+for idx, p in enumerate (position_data[:1860]):
     pos = (int(p[1][4]), int(p[1][5]))
     cv2.circle(img,pos, 1, (0,0,255))
         
-    if idx % 25 == 0 and idx<1900:
-        pos = (int(p[1][4]), int(p[1][5]))
+    if idx % 1 == 0 and idx<1855:
+        pos = (int(float(p[1][4])), int(float(p[1][5])))
         keypoints.append(pos)
 
 tpidx = 2
 DEG25 = deg2rad(25) 
+
+taup = 0.25
 
 sio = socketio.Server()
 app = Flask(__name__)
 model = None
 prev_image_array = None
 
-def can_move_next_tp(keypoints, tpidx, cp, change_at = 5):            
+
+def can_move_next_tp(keypoints, tpidx, cp, change_at=10):
     car_d=line_dist(cp, keypoints[tpidx])
+    print(cp, keypoints[tpidx], car_d)
     if car_d<change_at:
         return True
         
@@ -61,21 +64,42 @@ def get_cte(keypoints, cp):
     mind = 1000.
     for idx, kp in enumerate(keypoints[1:]):
         d = distance(prev, kp, cp)
-        if(mind>d):
+        if mind>d:
             mind = d
             tp,tpidx = (prev, kp), idx
         prev = kp   
         
     return mind, tp, tpidx
 
+def line_point_position(l1,l2, p):
+    return ((l2[0] - l1[0]) * (p[1] - l1[1]) - (l2[1]-l1[1]) * (p[0]-l1[0]))
+
+def get_nearest_point(keypoints, cp):
+    mind = 1000
+    min_idx = 0
+    for idx, kp in enumerate(keypoints):
+        d = line_dist(kp, cp)
+        if mind > d:
+            min_idx = idx
+            mind = d
+
+    return min_idx
+
+throttle = 0.3
+
+targets = [(1243.80, 704.22), (1245, 680) , (1268,655), (1213, 669)]
+curidx = 0
+
+prev_point = None
+count = 0
 
 @sio.on('telemetry')
 def telemetry(sid, data):
-    global tpidx
+    global tpidx, throttle, targets, curidx, prev_point, count
     # The current steering angle of the car
     steering_angle = data["steering_angle"]
     # The current throttle of the car
-    throttle = data["throttle"]
+    car_throttle = float(data["throttle"])
     # The current speed of the car
     speed = data["speed"]
     # The current image from the center camera of the car
@@ -83,44 +107,77 @@ def telemetry(sid, data):
     #print('speed:',data["speed"])
     position = data["position"]
     px,py, _ = [float(x) for x in position.split(":")]
+    cp = (int(px), int(py))
     #print('position: ', data["position"])
 
-    _,_,tpidx=get_cte(keypoints, (px,py))
+    #_,_,tpidx=get_cte(keypoints, (px,py))
     
     rotation = data["rotation"]
     rx,ry,rz = [float(x) for x in rotation.split(":")]
 
-    #print('rotation: ', rx,ry,rz)
-    if can_move_next_tp(keypoints, tpidx, (int(position[0]),int(position[1]))):
-        tpidx = (tpidx + 1) % (len(keypoints)-1)
-        print("Moving to next key point")
+    tpidx = (get_nearest_point(keypoints, (px,py)) + 50) % len(keypoints)
+    ptdist = line_dist(keypoints[tpidx], (px,py))
 
 
-    cv2.circle(img,(int(px),int(py)), 5, (255,0,255))
-    cv2.circle(img, keypoints[tpidx], 5, (255,0,0))
+    cv2.circle(img,(int(px),int(py)), 2, (255,255,255))
+    cv2.circle(img, keypoints[tpidx], 2, (255,255,0))
     cv2.imwrite("image.png", img)
-    
-    car_orientation = deg2rad(ry-175.0-82.0)    
 
-    print((int(px),int(py)), keypoints[tpidx])
-    steer = get_heading((int(px),int(py)), keypoints[tpidx])
-    #print("car_orientation: ", rad2deg(car_orientation), "heading : ", rad2deg(steer))
-    steer = float(steer) % (2.0 * pi)
-    #print(steer)
-    steer = car_orientation - steer  
+    target = targets[curidx]
+
+    d = line_dist(target, cp)
+    if(d<=5.0):
+        print("reached.")
+        curidx+=1
+        target = targets[curidx]
+        if curidx>2:
+            exit(0)
+
+    car_orientation = deg2rad(ry-175.0-84.92393566084966)
+    #print("ry ", ry)
+
+    print((int(px),int(py)),", ", keypoints[tpidx])
+
+    steer = 0.0
+    if prev_point:
+        dir = line_point_position(prev_point, cp, target)
+        print("Direction: ", dir)
+
+        if dir < 0.0:
+            steer = 0.1
+        else:
+            steer = -0.1
+
+
+
+    #steer = get_heading((int(px),int(py)), keypoints[tpidx])
+    #steer = get_heading(cp, target)
+
+    print(prev_point, ",", cp, ",", target, "tpidx: ", tpidx, "dist: ", ptdist, "car_orientation: ", rad2deg(car_orientation), "heading : ", rad2deg(steer), d)
+
+    #steer = (steer - car_orientation)
+    #steer = steer * taup / DEG25
+
+    """
     steer = angle_trunc(steer)
     if steer > DEG25:
         steer = DEG25
     if steer < -DEG25:
         steer = -DEG25
+    """
 
-    #print("Steer: ", steer)
-    steering_angle = steer / DEG25    
+
+    steering_angle = steer
     #print(steering_angle)
     # The driving model currently just outputs a constant throttle. Feel free to edit this.
-    throttle = 0.25
+
     print("control: ", steering_angle, throttle, tpidx)
+    #steering_angle = 0.32
     send_control(steering_angle, throttle)
+    count += 1
+    if count % 3 == 0:
+        prev_point = cp
+
 
 
 @sio.on('connect')
@@ -142,3 +199,7 @@ if __name__ == '__main__':
 
     # deploy as an eventlet WSGI server
     eventlet.wsgi.server(eventlet.listen(('', 4567)), app)
+
+
+# (1242, 682) (1213, 669) tpidx:  188 dist:  40.63088121429323 car_orientation:  -77.06213566084968 heading :  -155.85445803957836 31.78049716414141 - CORRECT ANGLE
+# (1243, 682) (1268, 655) tpidx:  188 dist:  40.30683719469939 car_orientation:  -78.75963566084967 heading :  -47.20259816176582 2.8284271247461903
