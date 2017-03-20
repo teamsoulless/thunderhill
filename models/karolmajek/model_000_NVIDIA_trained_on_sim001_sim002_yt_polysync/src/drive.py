@@ -54,7 +54,9 @@ class SimplePIController:
         return self.Kp * self.error + self.Ki * self.integral
 
 controller = SimplePIController(0.1, 0.01)
-set_speed = 35
+set_speed = 70
+# set_speed = 50
+# set_speed = 35
 controller.set_desired(set_speed)
 count=0
 @sio.on('telemetry')
@@ -71,8 +73,7 @@ def telemetry(sid, data):
     image = Image.open(BytesIO(base64.b64decode(imgString)))
     image_array = cv2.cvtColor(np.asarray(image), code=cv2.COLOR_RGB2BGR)
     image_array = Preproc(image_array[50:-30,:,:])
-    cv2.imshow('img',image_array+0.5)
-    cv2.waitKey(1)
+    font = cv2.FONT_HERSHEY_SIMPLEX
     transformed_image_array = image_array[None, :, :, :]
     # This model currently assumes that the features of the model are just the images. Feel free to change this.
     steering_angle = float(model.predict(transformed_image_array, batch_size=1))
@@ -84,11 +85,20 @@ def telemetry(sid, data):
         throttle = 0
 
     # Tap the brakes if steering is large (big turns)
-    if steering_angle > 0.65 or steering_angle < -0.65:
+    if steering_angle > 0.3 or steering_angle < -0.3:
+        throttle = 0
+    if steering_angle > 0.4 or steering_angle < -0.4:
         count += 1
         if count < 3:
-            throttle = -throttle
+            throttle = -1
             count = 0
+
+    img=image_array+0.5
+    cv2.putText(img,'%.1f %.1f'%(steering_angle, throttle),(10,150), font, 1,(0,0,255),1,cv2.LINE_AA)
+
+    cv2.imshow('img',img)
+    cv2.waitKey(1)
+
     # print(steering_angle, throttle, float(speed))
     controller = SimplePIController(0.1, 0.01)
     controller.set_desired(set_speed)
