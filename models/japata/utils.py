@@ -35,9 +35,9 @@ def getGlobals():
 def load_polysync_paths():
     cwd = os.getcwd() + '/thunderhill_data/'
     data_files = [
-        {'path': 'dataset_polysync_1464466368552019/', 'start_frame': 400, 'stop_frame': 6650},
-        # {'path': 'dataset_polysync_1464470620356308/', 'start_frame': 250, 'stop_frame': 4480},
-        {'path': 'dataset_polysync_1464552951979919/', 'start_frame': 350, 'stop_frame': 4550},
+        {'path': 'dataset_polysync_1464466368552019/', 'frame_ranges': [(400, 3000), (3550, 6550)]},
+        # {'path': 'dataset_polysync_1464470620356308/', 'frame_ranges': []},
+        {'path': 'dataset_polysync_1464552951979919/', 'frame_ranges': [(350, 1950), (3100, 4550)]},
       ]
 
     images = np.array([])
@@ -49,10 +49,13 @@ def load_polysync_paths():
         data = data[1:]
         data.rename(columns=new_header)
 
-        filtered_angs = np.array(data['steering'])[file['start_frame']:file['stop_frame']]
-        filtered_angs = np.array([float(ang) for ang in filtered_angs])
+        filtered_angs = np.array([])
+        filtered_ims = np.array([])
+        for start, stop in file['frame_ranges']:
+            filtered_angs = np.concatenate((filtered_angs, np.array(data['steering'])[start:stop]))
+            filtered_ims = np.concatenate((filtered_ims, np.array(data['path'])[start:stop]))
 
-        filtered_ims = np.array(data['path'])[file['start_frame']:file['stop_frame']]
+        filtered_angs = np.array([float(ang) for ang in filtered_angs])
         filtered_ims = np.array([data_folder + im for im in filtered_ims])
 
         images = np.concatenate((images, filtered_ims))
@@ -517,6 +520,7 @@ def batch_generator(ims, angs, batch_size, augmentor, kwargs={}, validation=Fals
                 loaded_ims.append(im)
 
             batch_x = np.array(loaded_ims)
+            batch_y /= 5.0
 
             # Augment the images with the given function
             batch_x, batch_y = augmentor(batch_x, batch_y, **kwargs)

@@ -76,7 +76,7 @@ def applyNormalisation(image):
     #image[:,:,3] = clahe.apply(image[:,:,3])
     return (image - 128.) / 128.
 
-def augmentImage(image, steering):
+def augmentImage(image, steering, throttle, brake):
     rot = np.random.randint(-20,21)
     image = rotateImage(image, rot)
     # Add a part of the rotated angle, as it is counted counter-clockwise.
@@ -84,6 +84,8 @@ def augmentImage(image, steering):
     # and needs to drive to the right -> add some angle 
     # divide it by the maximum of the steering angle in deg ->25
     steering += .2*rot/(20)
+    throttle -= .05*rot/20
+    brake += .05*rot/20
     shiftHor = np.random.randint(-30,31)
     shiftVer = np.random.randint(-10,11)
     image = shiftImg(image, shiftHor, shiftVer)
@@ -115,7 +117,7 @@ def preprocessImage(image):
     an image to prepare them for the network
     """
     image = image[image.shape[0]*2//5:,:,:]
-    #image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
     #image = cv2.convertScaleAbs(image, alpha=(1))
     #image = addGradientLayer(image, 7, (100,255), (0, np.pi/2))
     image = applyNormalisation(image)
