@@ -65,12 +65,11 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image).astype(np.uint8)
-        vals = model.predict([preprocessImage(image_array)[None,:,:,:],
-                                              np.array(telemetry.angles)], batch_size=1)
-        print(vals)
-        steering_angle = float(vals[0])
-        throttle = float(vals[1])
-        breakVal = float(vals[2])
+        steering_angle, throttle, breakVal = model.predict([preprocessImage(image_array)[None,:,:,:])#,np.array(telemetry.angles)[None,:]])
+        print(steering_angle, throttle, breakVal)
+        steering_angle = float(steering_angle)
+        throttle = float(throttle)
+        breakVal = float(breakVal)
         telemetry.angles.pop(0)
         telemetry.angles.append(steering_angle)
         throttle = throttle - breakVal

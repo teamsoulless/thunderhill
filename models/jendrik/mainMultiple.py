@@ -36,7 +36,7 @@ FLAGS = flags.FLAGS
 #flags.DEFINE_string('trainingCSV', '../simulator/data/data/driving_log.csv', "training data")
 
 
-def generateImagesFromPaths(data, batchSize, inputShape, outputShape, transform, angles, images, train = False):
+def generateImagesFromPaths(data, batchSize, inputShape, outputShape, angles, images, train = False):
     """
         The generator function for the training data for the fit_generator
         Input:
@@ -70,16 +70,7 @@ def generateImagesFromPaths(data, batchSize, inputShape, outputShape, transform,
                 angleArr[i] = np.array(angles[int(row['angleIndex']-ANGLESFED):int(row['angleIndex'])])
             returnArr[i] = image            
             weights[i] = row['norm']
-            #xVector = np.array([val + np.random.rand()*0.02 - 0.01 for val in xVector])
             vecArr[i] = xVector
-            #plt.imshow(image)
-            #plt.title(label[0])
-            #plt.show()
-            #if(train):
-            #    print('Train: ', label[0])#
-            #else:
-            #    print('Val: ', label[0])
-        #print(labels[:,0])
         yield({'input_1': returnArr,'input_2': angleArr,'input_3': np.array(vecArr)},
               {'outputSteer': labels[:,0],'outputThr': labels[:,1],'outputBre': labels[:,2]}, [weights,weights,weights])
                 
@@ -193,12 +184,11 @@ def main():
     
     batchSize = 128
     epochBatchSize = 4096
-    
-    trainGenerator = generateImagesFromPaths(dataTrain, batchSize, imShape, [3], transform, angles, images, True)
+    trainGenerator = generateImagesFromPaths(dataTrain, batchSize, imShape, [3], angles, images, True)
     t = time.time()
     trainGenerator.__next__()
     print("Time to build train batch: ", time.time()-t)
-    valGenerator = generateImagesFromPaths(dataVal, batchSize, imShape, [3], transform, angles, images)
+    valGenerator = generateImagesFromPaths(dataVal, batchSize, imShape, [3], angles, images)
     t = time.time()
     valGenerator.__next__()
     print("Time to build validation batch: ", time.time()-t)
@@ -207,6 +197,11 @@ def main():
     visCallback = TensorBoard(log_dir = './logs')
     if LOADMODEL:
         endModel = load_model('multiModel.h5', custom_objects={'customLoss':customLoss})
+        inp = valGenerator.__next__()
+        print(inp)
+        print(inp[0])
+        vals = endModel.predict([inp[0]['input_1'][0][None,:,:,:],np.reshape(inp[0]['input_2'][0],[1,5])])
+        print(vals)
         endModel.fit_generator(trainGenerator, callbacks=[stopCallback, checkCallback, visCallback], nb_epoch=20, samples_per_epoch=epochBatchSize,
                                max_q_size=8, validation_data = valGenerator, nb_val_samples=len(dataVal),
                                nb_worker=8, pickle_safe=True)
@@ -248,9 +243,9 @@ def main():
         xVector = Dropout(.1)(xVector)"""
         
         
-        inpAngles = Input(shape=(ANGLESFED,), name='input_2')
+        #inpAngles = Input(shape=(ANGLESFED,), name='input_2')
         
-        xOut = Lambda(lambda x : K.concatenate(x, axis=1))([xOut, inpAngles])
+        #xOut = Lambda(lambda x : K.concatenate(x, axis=1))(xOut)
         xOut = Dense(200)(xOut)
         xOut = BatchNormalization()(xOut)
         xOut = Activation('elu')(xOut)
@@ -290,7 +285,7 @@ def main():
         xOutBre = Lambda(lambda x: x*2-1, name = 'outputBre')(xOutBre)
         #xRec = LSTM(10)(xOut)
         
-        endModel = Model((inpC, inpAngles), (xOutSteer, xOutThr, xOutBre))
+        endModel = Model((inpC), (xOutSteer, xOutThr, xOutBre))
         endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'])
         endModel.fit_generator(trainGenerator, callbacks = [visCallback], 
                                nb_epoch=5, samples_per_epoch=epochBatchSize, 
@@ -304,8 +299,9 @@ def main():
         endModel.save('multiModel.h5')
         
     endModel = load_model('multiModel.h5', custom_objects={'customLoss':customLoss})
+    
     print(endModel.evaluate_generator(valGenerator, val_samples=len(dataVal)))
-    print(endModel.evaluate_generator(generateImagesFromPaths(dataTest, batchSize, imShape, [3], transform, angles, images), 
+    print(endModel.evaluate_generator(generateImagesFromPaths(dataTest, batchSize, imShape, [3], angles, images), 
                                       val_samples=len(dataTest)))
 
 if __name__ == '__main__':
