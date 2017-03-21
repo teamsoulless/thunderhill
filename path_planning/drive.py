@@ -85,23 +85,23 @@ def get_nearest_point(keypoints, cp):
 
     return min_idx
 
-throttle = 0.3
+throttle = 0.1
 
 targets = [(1243.80, 704.22), (1245, 680) , (1268,655), (1213, 669)]
 curidx = 0
 
 prev_point = None
 count = 0
-
+target_speed = 15.0
 @sio.on('telemetry')
 def telemetry(sid, data):
-    global tpidx, throttle, targets, curidx, prev_point, count
+    global tpidx, throttle, targets, curidx, prev_point, count, target_speed
     # The current steering angle of the car
     steering_angle = data["steering_angle"]
     # The current throttle of the car
     car_throttle = float(data["throttle"])
     # The current speed of the car
-    speed = data["speed"]
+    speed = float(data["speed"])
     # The current image from the center camera of the car
     imgString = data["image"]
     #print('speed:',data["speed"])
@@ -144,9 +144,9 @@ def telemetry(sid, data):
         print("Direction: ", dir)
 
         if dir < 0.0:
-            steer = 0.1
+            steer = 0.2
         else:
-            steer = -0.1
+            steer = -0.2
 
 
 
@@ -166,7 +166,6 @@ def telemetry(sid, data):
         steer = -DEG25
     """
 
-
     steering_angle = steer
     #print(steering_angle)
     # The driving model currently just outputs a constant throttle. Feel free to edit this.
@@ -177,6 +176,11 @@ def telemetry(sid, data):
     count += 1
     if count % 3 == 0:
         prev_point = cp
+
+    if speed < target_speed:
+        throttle += 0.025
+    elif speed > target_speed:
+        throttle -= 0.025
 
 
 
