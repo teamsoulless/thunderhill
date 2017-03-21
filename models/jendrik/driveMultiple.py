@@ -18,6 +18,7 @@ from Preprocess import perspectiveTransform
 from matplotlib import image as mpimg
 import cv2
 import functools
+import time
 
 sio = socketio.Server()
 app = Flask(__name__)
@@ -65,12 +66,14 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image).astype(np.uint8)
-        vals = model.predict([preprocessImage(image_array)[None,:,:,:],
-                                              np.array(telemetry.angles)], batch_size=1)
-        print(vals)
-        steering_angle = float(vals[0])
-        throttle = float(vals[1])
-        breakVal = float(vals[2])
+        t = time.time()
+        steering_angle, throttle, breakVal = model.predict([preprocessImage(image_array)[None,:,:,:]])#,np.array(telemetry.angles)[None,:]])
+        print(time.time() - t, steering_angle, throttle, breakVal)
+        steering_angle = float(steering_angle)
+        throttle = float(throttle)
+        if float(speed) > 50:
+            throttle -=.3
+        breakVal = float(breakVal)
         telemetry.angles.pop(0)
         telemetry.angles.append(steering_angle)
         throttle = throttle - breakVal

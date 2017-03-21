@@ -36,7 +36,7 @@ FLAGS = flags.FLAGS
 #flags.DEFINE_string('trainingCSV', '../simulator/data/data/driving_log.csv', "training data")
 
 
-def generateImagesFromPaths(data, batchSize, inputShape, outputShape, transform, angles, images, train = False):
+def generateImagesFromPaths(data, batchSize, inputShape, outputShape, angles, images, train = False):
     """
         The generator function for the training data for the fit_generator
         Input:
@@ -52,6 +52,7 @@ def generateImagesFromPaths(data, batchSize, inputShape, outputShape, transform,
         indices = np.random.randint(0, len(data), batchSize)
         for i,index in zip(range(len(indices)),indices):
             row = data.iloc[index]
+            #image = preprocessImage(mpimg.imread(row['center'].strip()))
             image = images[int(row['angleIndex'])]
             label = np.array([row['steering'], row['throttle'], row['brake']])
             xVector = row[['positionX', 'positionY', 'positionZ', 'orientationX', 'orientationY', 'orientationZ']].values
@@ -61,7 +62,7 @@ def generateImagesFromPaths(data, batchSize, inputShape, outputShape, transform,
                 image = mirrorImage(image)
                 label[0] *= -1
             if(train):
-                image, label[0] = augmentImage(image, label[0])
+                image, label = augmentImage(image, label)
             labels[i] = label
             if flip>.5:
                 angleArr[i] = -1.*np.array(angles[int(row['angleIndex']-ANGLESFED):
@@ -70,16 +71,7 @@ def generateImagesFromPaths(data, batchSize, inputShape, outputShape, transform,
                 angleArr[i] = np.array(angles[int(row['angleIndex']-ANGLESFED):int(row['angleIndex'])])
             returnArr[i] = image            
             weights[i] = row['norm']
-            #xVector = np.array([val + np.random.rand()*0.02 - 0.01 for val in xVector])
             vecArr[i] = xVector
-            #plt.imshow(image)
-            #plt.title(label[0])
-            #plt.show()
-            #if(train):
-            #    print('Train: ', label[0])#
-            #else:
-            #    print('Val: ', label[0])
-        #print(labels[:,0])
         yield({'input_1': returnArr,'input_2': angleArr,'input_3': np.array(vecArr)},
               {'outputSteer': labels[:,0],'outputThr': labels[:,1],'outputBre': labels[:,2]}, [weights,weights,weights])
                 
@@ -113,7 +105,7 @@ def retrieveVectors(vecString):
         
 
 def main():
-    img = mpimg.imread('/home/jjordening/git/thunderhill_data/dataset_sim_001_km_320x160/IMG/center_2017_03_07_07_21_54_311.jpg')
+    img = mpimg.imread('/home/jendrik/git/thunderhill_data/dataset_sim_001_km_320x160/IMG/center_2017_03_07_07_21_54_311.jpg')
     h, w = img.shape[:2]
     src = np.float32([[w/2 - 57, h/2], [w/2 + 57, h/2], [w+140,h], [-140,h]])
     dst = np.float32([[w/4,0], [w*3/4,0], [w*3/4,h], [w/4,h]])
@@ -126,28 +118,31 @@ def main():
     #showSamplesCompared(img, transform, '', '', '')
     plt.xkcd()
     np.random.seed(0)
-    #data = pd.read_csv('/home/jjordening/git/thunderhill_data/dataset_sim_000_km_few_laps/driving_log.csv', 
+    #data = pd.read_csv('/home/jendrik/git/thunderhill_data/dataset_sim_000_km_few_laps/driving_log.csv', 
     #                   header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
     #data['positionX'], data['positionY'], data['positionZ'] = data['position'].apply(retrieveVectors)
     #data['orientationX'], data['orientationY'], data['orientationZ'] = data['orientation'].apply(retrieveVectors)
-    #data['center'] = '/home/jjordening/git/thunderhill_data/dataset_sim_000_km_few_laps/'+data['center'].apply(lambda x: x.strip())
-    data1 = pd.read_csv('/home/jjordening/git/thunderhill_data/dataset_sim_001_km_320x160/driving_log.csv', 
+    #data['center'] = '/home/jendrik/git/thunderhill_data/dataset_sim_000_km_few_laps/'+data['center'].apply(lambda x: x.strip())
+    data1 = pd.read_csv('/home/jendrik/git/thunderhill_data/dataset_sim_001_km_320x160/driving_log.csv', 
                        header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
-    data1['center'] = '/home/jjordening/git/thunderhill_data/dataset_sim_001_km_320x160/'+data1['center'].apply(lambda x: x.strip())
+    data1['center'] = '/home/jendrik/git/thunderhill_data/dataset_sim_001_km_320x160/'+data1['center'].apply(lambda x: x.strip())
     data1[['positionX','positionY','positionZ']] = data1['position'].apply(retrieveVectors)
     data1[['orientationX','orientationY','orientationZ']] = data1['orientation'].apply(retrieveVectors)
-    data2 = pd.read_csv('/home/jjordening/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/driving_log.csv', 
+    data2 = pd.read_csv('/home/jendrik/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/driving_log.csv', 
                        header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
-    data2['center'] = '/home/jjordening/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/'+data2['center'].apply(lambda x: x.strip())
+    data2['center'] = '/home/jendrik/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/'+data2['center'].apply(lambda x: x.strip())
     data2[['positionX','positionY','positionZ']] = data2['position'].apply(retrieveVectors)
     data2[['orientationX','orientationY','orientationZ']] = data2['orientation'].apply(retrieveVectors)
+    
+    #data3 = pd.read_csv('/home/jendrik/git/thunderhill_data/dataset_sim_003_km_320x160/driving_log.csv', 
+    #                   header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
+    #data3['center'] = '/home/jendrik/git/thunderhill_data/dataset_sim_003_km_320x160/'+data3['center'].apply(lambda x: x.strip())
+    #data3[['positionX','positionY','positionZ']] = data3['position'].apply(retrieveVectors)
+    #data3[['orientationX','orientationY','orientationZ']] = data3['orientation'].apply(retrieveVectors)
     #data['right'] = '../simulator/data/data/'+data['right'].apply(lambda x: x.strip())
     #data['left'] = '../simulator/data/data/'+data['left'].apply(lambda x: x.strip())
     angles = []
     images = []
-    """data2 = pd.read_csv('../simulator/simulator-linux/driving_log.csv', header = None, names=['center','left', 'right', 'steering',
-                                                               'throttle', 'break', 'speed'])
-    data = data.append(data2)"""
     dataNew = pd.DataFrame()
     offset = 0
     
@@ -193,20 +188,24 @@ def main():
     
     batchSize = 128
     epochBatchSize = 4096
-    
-    trainGenerator = generateImagesFromPaths(dataTrain, batchSize, imShape, [3], transform, angles, images, True)
+    trainGenerator = generateImagesFromPaths(dataTrain, batchSize, imShape, [3], angles, images, True)
     t = time.time()
     trainGenerator.__next__()
     print("Time to build train batch: ", time.time()-t)
-    valGenerator = generateImagesFromPaths(dataVal, batchSize, imShape, [3], transform, angles, images)
+    valGenerator = generateImagesFromPaths(dataVal, batchSize, imShape, [3], angles, images)
     t = time.time()
     valGenerator.__next__()
     print("Time to build validation batch: ", time.time()-t)
-    stopCallback = EarlyStopping(monitor='val_loss', patience = 15, min_delta = 0.)
+    stopCallback = EarlyStopping(monitor='val_loss', patience = 20, min_delta = 0.)
     checkCallback = ModelCheckpoint('multiModel.ckpt', monitor='val_loss', save_best_only=True)
     visCallback = TensorBoard(log_dir = './logs')
     if LOADMODEL:
         endModel = load_model('multiModel.h5', custom_objects={'customLoss':customLoss})
+        inp = valGenerator.__next__()
+        print(inp)
+        print(inp[0])
+        vals = endModel.predict([inp[0]['input_1'][0][None,:,:,:],np.reshape(inp[0]['input_2'][0],[1,5])])
+        print(vals)
         endModel.fit_generator(trainGenerator, callbacks=[stopCallback, checkCallback, visCallback], nb_epoch=20, samples_per_epoch=epochBatchSize,
                                max_q_size=8, validation_data = valGenerator, nb_val_samples=len(dataVal),
                                nb_worker=8, pickle_safe=True)
@@ -248,9 +247,9 @@ def main():
         xVector = Dropout(.1)(xVector)"""
         
         
-        inpAngles = Input(shape=(ANGLESFED,), name='input_2')
+        #inpAngles = Input(shape=(ANGLESFED,), name='input_2')
         
-        xOut = Lambda(lambda x : K.concatenate(x, axis=1))([xOut, inpAngles])
+        #xOut = Lambda(lambda x : K.concatenate(x, axis=1))(xOut)
         xOut = Dense(200)(xOut)
         xOut = BatchNormalization()(xOut)
         xOut = Activation('elu')(xOut)
@@ -290,22 +289,23 @@ def main():
         xOutBre = Lambda(lambda x: x*2-1, name = 'outputBre')(xOutBre)
         #xRec = LSTM(10)(xOut)
         
-        endModel = Model((inpC, inpAngles), (xOutSteer, xOutThr, xOutBre))
+        endModel = Model((inpC), (xOutSteer, xOutThr, xOutBre))
         endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'])
         endModel.fit_generator(trainGenerator, callbacks = [visCallback], 
-                               nb_epoch=5, samples_per_epoch=epochBatchSize, 
-                               max_q_size=8, nb_worker=8, pickle_safe=True)
+                               nb_epoch=150, samples_per_epoch=epochBatchSize, 
+                               max_q_size=32, nb_worker=32, pickle_safe=True)
         endModel.fit_generator(trainGenerator, callbacks = [stopCallback, checkCallback,visCallback], 
-                               nb_epoch=100, samples_per_epoch=epochBatchSize, 
-                               max_q_size=8, validation_data = valGenerator, 
+                               nb_epoch=300, samples_per_epoch=epochBatchSize, 
+                               max_q_size=32, validation_data = valGenerator, 
                                nb_val_samples=len(dataVal),
-                               nb_worker=8, pickle_safe=True)
+                               nb_worker=32, pickle_safe=True)
         endModel.load_weights('multiModel.ckpt')
         endModel.save('multiModel.h5')
         
     endModel = load_model('multiModel.h5', custom_objects={'customLoss':customLoss})
+    
     print(endModel.evaluate_generator(valGenerator, val_samples=len(dataVal)))
-    print(endModel.evaluate_generator(generateImagesFromPaths(dataTest, batchSize, imShape, [3], transform, angles, images), 
+    print(endModel.evaluate_generator(generateImagesFromPaths(dataTest, batchSize, imShape, [3], angles, images), 
                                       val_samples=len(dataTest)))
 
 if __name__ == '__main__':
