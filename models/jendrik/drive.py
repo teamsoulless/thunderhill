@@ -31,6 +31,8 @@ dst = np.float32([[w/4,0], [w*3/4,0], [w*3/4,h], [w/4,h]])
 M = cv2.getPerspectiveTransform(src, dst)
 invM = cv2.getPerspectiveTransform(dst, src)
 transform = functools.partial(perspectiveTransform, M = M)
+imShape = preprocessImage(img).shape
+print(imShape)
 
 def staticVar(**kwargs):
     """This function allows to define C-Like
@@ -43,6 +45,13 @@ def staticVar(**kwargs):
 
 #static Var to store the previous steering angles
 @staticVar(angles = list(np.zeros(10)))
+#static Var to store the previous images
+@staticVar(images = [
+    np.zeros(imShape), np.zeros(imShape), np.zeros(imShape), np.zeros(imShape),
+    np.zeros(imShape), np.zeros(imShape), np.zeros(imShape), np.zeros(imShape),
+    np.zeros(imShape), np.zeros(imShape), np.zeros(imShape), np.zeros(imShape),
+    np.zeros(imShape), np.zeros(imShape), np.zeros(imShape), np.zeros(imShape)
+                     ])
 @sio.on('telemetry')
 def telemetry(sid, data):
     if data:
@@ -65,7 +74,9 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image).astype(np.uint8)
-        steering_angle = float(model.predict([preprocessImage(image_array)[None, None,:,:,:]], batch_size=1))
+        telemetry.images.pop(0)
+        telemetry.images.append(preprocessImage(image_array))
+        steering_angle = float(model.predict([np.array(telemetry.images)[None,:,:,:,:]], batch_size=1))
         telemetry.angles.pop(0)
         telemetry.angles.append(steering_angle)
         throttle = (50. - float(speed))*.05
