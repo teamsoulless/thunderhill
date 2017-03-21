@@ -115,28 +115,19 @@ def telemetry(sid, data):
     rotation = data["rotation"]
     rx,ry,rz = [float(x) for x in rotation.split(":")]
 
-    tpidx = (get_nearest_point(keypoints, (px,py)) + 50) % len(keypoints)
-    ptdist = line_dist(keypoints[tpidx], (px,py))
+    tpidx = (get_nearest_point(keypoints, (px,py)) + 25) % len(keypoints)
+    #ptdist = line_dist(keypoints[tpidx], (px,py))
 
 
     cv2.circle(img,(int(px),int(py)), 2, (255,255,255))
     cv2.circle(img, keypoints[tpidx], 2, (255,255,0))
     cv2.imwrite("image.png", img)
 
-    target = targets[curidx]
-
-    d = line_dist(target, cp)
-    if(d<=5.0):
-        print("reached.")
-        curidx+=1
-        target = targets[curidx]
-        if curidx>2:
-            exit(0)
-
     car_orientation = deg2rad(ry-175.0-84.92393566084966)
     #print("ry ", ry)
 
-    print((int(px),int(py)),", ", keypoints[tpidx])
+    target = keypoints[tpidx]
+    print((int(px),int(py)),", ", target)
 
     steer = 0.0
     if prev_point:
@@ -153,7 +144,7 @@ def telemetry(sid, data):
     #steer = get_heading((int(px),int(py)), keypoints[tpidx])
     #steer = get_heading(cp, target)
 
-    print(prev_point, ",", cp, ",", target, "tpidx: ", tpidx, "dist: ", ptdist, "car_orientation: ", rad2deg(car_orientation), "heading : ", rad2deg(steer), d)
+    print(prev_point, ",", cp, ",", target, "tpidx: ", tpidx, "car_orientation: ", rad2deg(car_orientation), "heading : ", rad2deg(steer))
 
     #steer = (steer - car_orientation)
     #steer = steer * taup / DEG25
