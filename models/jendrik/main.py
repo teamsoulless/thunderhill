@@ -25,7 +25,7 @@ import threading
 logger = mp.log_to_stderr()
 
 LOADMODEL = False
-ANGLESFED = 1
+ANGLESFED = 5
 
 
 flags = tf.app.flags
@@ -70,7 +70,7 @@ def generateImagesFromPaths(data, batchSize, inputShape, outputShape, transform,
                 angleArr[i] = np.array(angles[int(row['angleIndex']-ANGLESFED):int(row['angleIndex'])])
             returnArr[i] = image            
             weights[i] = row['norm']
-            xVector = np.array([val + np.random.rand()*0.02 - 0.01 for val in xVector])
+            #xVector = np.array([val + np.random.rand()*0.02 - 0.01 for val in xVector])
             vecArr[i] = xVector
             #plt.imshow(image)
             #plt.title(label[0])
@@ -80,7 +80,7 @@ def generateImagesFromPaths(data, batchSize, inputShape, outputShape, transform,
             #else:
             #    print('Val: ', label[0])
         #print(labels[:,0])
-        yield({'input_1': returnArr},
+        yield({'input_1': returnArr,'input_2': angleArr,'input_3': np.array(vecArr)},
               {'output': labels[:,0]}, weights)
                 
 
@@ -163,8 +163,8 @@ def main():
     # TODO: Normalisation of position and orientation
     print(len(dataNew), dataNew.columns)
     hist, edges = np.histogram(dataNew['steering'], bins = 31)
-    hist = 1./np.array([val if val > len(dataNew)/20. else len(dataNew)/20. for val in hist])
-    hist*=len(dataNew)/20.
+    hist = 1./np.array([val if val > len(dataNew)/30. else len(dataNew)/30. for val in hist])
+    hist*=len(dataNew)/30.
     print(hist, len(dataNew))
     dataNew['norm'] = dataNew['steering'].apply(lambda x: getNormFactor(x, hist, edges))
     print(dataNew['norm'].unique())
@@ -202,15 +202,15 @@ def main():
     t = time.time()
     valGenerator.__next__()
     print("Time to build validation batch: ", time.time()-t)
-    stopCallback = EarlyStopping(monitor='val_loss', patience = 10, min_delta = 0.)
-    checkCallback = ModelCheckpoint('model.ckpt', monitor='val_loss', save_best_only=True)
+    stopCallback = EarlyStopping(monitor='val_loss', patience = 15, min_delta = 0.)
+    checkCallback = ModelCheckpoint('initModel.ckpt', monitor='val_loss', save_best_only=True)
     visCallback = TensorBoard(log_dir = './logs')
     if LOADMODEL:
         endModel = load_model('initModel.h5', custom_objects={'customLoss':customLoss})
         endModel.fit_generator(trainGenerator, callbacks=[stopCallback, checkCallback, visCallback], nb_epoch=20, samples_per_epoch=epochBatchSize,
                                max_q_size=8, validation_data = valGenerator, nb_val_samples=len(dataVal),
                                nb_worker=8, pickle_safe=True)
-        endModel.load_weights('model.ckpt')
+        endModel.load_weights('initModel.ckpt')
         endModel.save('model.h5')
         
         
@@ -248,9 +248,12 @@ def main():
         xVector = Dropout(.1)(xVector)"""
         
         
-        #inpAngles = Input(shape=(ANGLESFED,), name='input_2')
+        inpAngles = Input(shape=(ANGLESFED,), name='input_2')
         
-        #xOut = Lambda(lambda x : K.concatenate(x, axis=1))([xOut, inpAngles])
+        xOut = Lambda(lambda x : K.concatenate(x, axis=1))([xOut, inpAngles])
+        xOut = Dense(200)(xOut)
+        xOut = BatchNormalization()(xOut)
+        xOut = Activation('elu')(xOut)
         xOut = Dense(100)(xOut)
         xOut = BatchNormalization()(xOut)
         xOut = Activation('elu')(xOut)
@@ -265,7 +268,7 @@ def main():
         xOut = Lambda(lambda x: x*2-1, name = 'output')(xOut)
         #xRec = LSTM(10)(xOut)
         
-        endModel = Model((inpC), xOut)
+        endModel = Model((inpC, inpAngles), xOut)
         endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'])
         endModel.fit_generator(trainGenerator, callbacks = [visCallback], 
                                nb_epoch=5, samples_per_epoch=epochBatchSize, 
@@ -273,9 +276,9 @@ def main():
         endModel.fit_generator(trainGenerator, callbacks = [stopCallback, checkCallback,visCallback], 
                                nb_epoch=100, samples_per_epoch=epochBatchSize, 
                                max_q_size=8, validation_data = valGenerator, 
-                               nb_val_samples=len(dataVal)/10,
+                               nb_val_samples=len(dataVal),
                                nb_worker=8, pickle_safe=True)
-        endModel.load_weights('model.ckpt')
+        endModel.load_weights('initModel.ckpt')
         endModel.save('initModel.h5')
         
     endModel = load_model('initModel.h5', custom_objects={'customLoss':customLoss})

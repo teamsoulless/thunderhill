@@ -2,7 +2,7 @@ import argparse
 import base64
 from datetime import datetime
 import os
-import sys
+import h5py
 import shutil
 
 import matplotlib.pyplot as plt
@@ -13,14 +13,13 @@ import eventlet.wsgi
 from PIL import Image
 from flask import Flask
 from io import BytesIO
-from moviepy.editor import ImageSequenceClip
 
 from keras.models import load_model
-import h5py
 from keras import __version__ as keras_version
 
 import utils
 from visualize import VisualizeActivations
+from batch_renorm import BatchRenormalization
 
 
 utils.setGlobals()
@@ -160,7 +159,7 @@ if __name__ == '__main__':
         print('You are using Keras version ', keras_version,
               ', but the model was built using ', model_version)
 
-    model = load_model(args.model)
+    model = load_model(args.model, custom_objects={'BatchRenormalization': BatchRenormalization})
     visualizer = VisualizeActivations(model, utils.process_image, utils.rectify_image)
 
     if args.image_folder != '':

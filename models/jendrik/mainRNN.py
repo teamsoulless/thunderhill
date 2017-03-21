@@ -22,6 +22,7 @@ from keras.optimizers import Adam
 import multiprocessing as mp
 import threading
 from keras.layers.wrappers import TimeDistributed
+import time
 
 logger = mp.log_to_stderr()
 
@@ -47,34 +48,29 @@ def generateImagesFromPaths(data, batchSize, timeLength, inputShape, outputShape
     start = 0
     while 1:
         returnArr = np.zeros((batchSize, timeLength, inputShape[0], inputShape[1], inputShape[2]))
-        angleArr = np.zeros((batchSize, timeLength, ANGLESFED))
         vecArr = np.zeros((batchSize, timeLength, 6))
-        labels = np.zeros((batchSize, timeLength, 1))
-        weights = np.zeros((batchSize, timeLength,1))
+        labels = np.zeros((batchSize, 1))
+        weights = np.zeros((batchSize))
         for j in range(batchSize):
-            indices = np.random.randint(start, len(data), timeLength)
             start += timeLength
             start %=(len(data)-timeLength)
+            flip = np.random.rand()
+            indices = np.arange(start, start+timeLength, 1)
             for i,index in zip(range(len(indices)),indices):
                 row = data.iloc[index]
                 image = images[int(row['angleIndex'])]
                 label = np.array([row['steering'], row['throttle'], row['brake']])
                 xVector = row[['positionX', 'positionY', 'positionZ', 'orientationX', 'orientationY', 'orientationZ']].values
                 #if(image.shape[0] != 320): image = cv2.resize(image, (320, 160))
-                flip = np.random.rand()
-                if flip>.5:
-                    image = mirrorImage(image)
-                    label[0] *= -1
-                if(train):
-                    image, label[0] = augmentImage(image, label[0])
-                labels[j,i,0] = label[0]
-                if flip>.5:
-                    angleArr[j,i] = -1.*np.array(angles[int(row['angleIndex']-ANGLESFED):
-                                                      int(row['angleIndex'])])
-                else:
-                    angleArr[j,i] = np.array(angles[int(row['angleIndex']-ANGLESFED):int(row['angleIndex'])])
+                
+                #if flip>.5:
+                #    image = mirrorImage(image)
+                #    label[0] *= -1
+                #if(train):
+                #    image, label[0] = augmentImage(image, label[0])
+                labels[j,0] = label[0]
                 returnArr[j,i] = image            
-                weights[j,i,:] = row['norm']
+                weights[j] = row['norm']
                 xVector = np.array([val + np.random.rand()*0.02 - 0.01 for val in xVector])
                 vecArr[j,i] = xVector
                 #plt.imshow(image)
@@ -85,7 +81,7 @@ def generateImagesFromPaths(data, batchSize, timeLength, inputShape, outputShape
                 #else:
                 #    print('Val: ', label[0])
             #print(labels[:,0])
-            yield(returnArr,labels)
+            yield(returnArr,labels, weights)
                 
 
 def customLoss(y_true, y_pred):
@@ -195,8 +191,8 @@ def main():
     print(imShape)
     
     timeLength = 16
-    batchSize = 32
-    epochBatchSize = 4096
+    batchSize = 1
+    epochBatchSize = 1024
     
     trainGenerator = generateImagesFromPaths(dataTrain, batchSize, timeLength, imShape, [3], transform, angles, images, True)
     t = time.time()
@@ -208,9 +204,6 @@ def main():
     t = time.time()
     valGenerator.__next__()
     print("Time to build validation batch: ", time.time()-t)
-    stopCallback = EarlyStopping(monitor='val_loss', patience = 10, min_delta = 0.)
-    checkCallback = ModelCheckpoint('model.ckpt', monitor='val_loss', save_best_only=True)
-    visCallback = TensorBoard(log_dir = './logs')
     model = load_model('initModel.h5', custom_objects={'customLoss':customLoss})
     prevWeights = []
     for layer in model.layers:
@@ -246,39 +239,67 @@ def main():
     xOut = TimeDistributed(Flatten())(xC)
     del prevWeights
 
-    xOut = LSTM(1024, stateful=True, return_sequences=True)(xOut)
+    xOut = LSTM(1024)(xOut)
         
-    xOut = TimeDistributed(Dense(100))(xOut)
-    xOut = TimeDistributed(BatchNormalization())(xOut)
+    xOut = Dense(100)(xOut)
+    xOut = BatchNormalization()(xOut)
     xOut = Activation('elu')(xOut)
-    xOut = TimeDistributed(Dense(50))(xOut)
-    xOut = TimeDistributed(BatchNormalization())(xOut)
+    xOut = Dense(50)(xOut)
+    xOut = BatchNormalization()(xOut)
     xOut = Activation('elu')(xOut)
     xOut = Dropout(.3)(xOut)
-    xOut = TimeDistributed(Dense(10))(xOut)
-    xOut = TimeDistributed(BatchNormalization())(xOut)
+    xOut = Dense(10)(xOut)
+    xOut = BatchNormalization()(xOut)
     xOut = Activation('elu')(xOut)
-    xOut = TimeDistributed(Dense(1, activation='sigmoid'))(xOut)
+    xOut = Dense(1, activation='sigmoid')(xOut)
     xOut = Lambda(lambda x: x*2-1, name = 'output')(xOut)
     
     print(xOut.get_shape())
     
     endModel = Model((inpC), xOut)
-    endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'],sample_weight_mode='temporal')
-    endModel.fit_generator(trainGenerator, callbacks = [visCallback], 
-                               nb_epoch=5, samples_per_epoch=epochBatchSize, 
-                               max_q_size=4, nb_worker=8, pickle_safe=True)
-    endModel.fit_generator(trainGenerator, callbacks = [stopCallback, checkCallback,visCallback], 
-                               nb_epoch=100, samples_per_epoch=epochBatchSize, 
-                               max_q_size=4, validation_data = valGenerator, 
-                               nb_val_samples=len(dataVal)/10,
-                               nb_worker=8, pickle_safe=True)
+    endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'])
+    valErrorComp = 2
+    counter = 0
+    for i in range(100):
+        print("Epoch: ", i)
+        trainError = 0
+        for j in range(epochBatchSize//2):
+            x, y, weight = trainGenerator.__next__()
+            trainError += endModel.train_on_batch(x, y, weight)[0]
+            if j%256==0: print(j)
+        endModel.reset_states()
+        for j in range(epochBatchSize//2):
+            x, y, weight = trainGenerator.__next__()
+            trainError += endModel.train_on_batch(mirrorImage(x), -1.*y, weight)[0]
+            if j%256==0: print(j)
+        print("Train Error", trainError/epochBatchSize)
+        endModel.reset_states()
+        valError = 0
+        for j in range(len(dataVal)//5):
+            x, y, weight = valGenerator.__next__()
+            valError += endModel.test_on_batch(x, y, weight)[0]
+            if j%256==0: print(j)
+        endModel.reset_states()
+        for j in range(len(dataVal)//5):
+            x, y, weight = valGenerator.__next__()
+            valError += endModel.test_on_batch(mirrorImage(x), -1.*y, weight)[0]
+            if j%256==0: print(j)
+        valError/=len(dataVal)//5
+        print("Validation Error", valError)
+        endModel.reset_states()
+        counter += 1
+        if valError < valErrorComp:
+            counter = 0
+            valErrorComp = valError
+            endModel.save_weights('model.ckpt')
+        if counter == 6:
+            break
     endModel.load_weights('model.ckpt')
-    endModel.save('initModel.h5')
     endModel.save('model.h5')
         
     endModel = load_model('model.h5', custom_objects={'customLoss':customLoss})
     print(endModel.evaluate_generator(valGenerator, val_samples=len(dataVal)))
+    endModel.reset_states()
     print(endModel.evaluate_generator(generateImagesFromPaths(dataTest, batchSize, timeLength, imShape, [3], transform, angles, images), 
                                       val_samples=len(dataTest)))
 
