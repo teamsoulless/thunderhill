@@ -1,8 +1,11 @@
+import os
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import trange
 from scipy.spatial import distance
 import models
+import utils
 
 
 class Individual(object):
@@ -140,14 +143,25 @@ class Population(object):
 
 
 def fitness_function(array):
-    pairwise_euclidean_distances = distance.pdist(array, 'euclidean')
-    # TODO
-    pass
+    normalized = array / np.linalg.norm(array, axis=1).reshape(-1, 1)
+    pairwise_euclidean_distances = distance.pdist(normalized, 'sqeuclidean')
+    return np.min(pairwise_euclidean_distances) + np.mean(pairwise_euclidean_distances)
 
 
-def thunderhill_generator():
-    # TODO
-    pass
+def thunderhill_generator(paths, batch_size=64):
+    n_obs = paths.shape[0]
+    batch_starts = np.arange(0, n_obs, batch_size)
+
+    for batch in batch_starts:
+        next_idx = batch + batch_size
+        batch_x = paths[batch:min(next_idx, n_obs), ...]
+
+        # Load the images from their paths
+        loaded_ims = []
+        for im_path in batch_x:
+            im = cv2.cvtColor(cv2.imread(im_path), cv2.COLOR_BGR2RGB)
+            loaded_ims.append(im)
+        yield np.array(loaded_ims)
 
 
 def train(generator,
@@ -185,7 +199,7 @@ def train(generator,
 
 if __name__ == '__main__':
     individual = Individual(
-        model_generator=models.cg23,
+        model_generator=models.evolutionary_feature_extractor,
         mu=0,
         sigma=1.5,
         mutation_prob=0.05,
@@ -197,8 +211,13 @@ if __name__ == '__main__':
         mate_prob=0.8
       )
 
+    # Load image paths
+    path = os.getcwd() + '/'
+    data = utils.load_polysync_paths()
+
+    # Evolve the model
     best_model, history = train(
-        generator=thunderhill_generator,
+        generator=thunderhill_generator(data['center'], batch_size=64),
         population=population,
         tournament_size=10,
         mate_and_or_mutate='and',

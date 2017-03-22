@@ -84,20 +84,31 @@ def cg23(params):
         Dense(100, activation='elu'),
         Dense(50, activation='elu'),
         Dense(10, activation='elu'),
-        Dense(1)
+        Dense(params.output_dims)
     ])
     return model
 
 
-def dev(params):
+def evolutionary_feature_extractor():
     model = Sequential([
         Lambda(lambda x: x/255. - 0.5, input_shape=(160, 320, 3)),
 
-        Convolution2D(3, 1, 1),
-
         # 160x320x3
         Convolution2D(24, 8, 8, activation='elu', border_mode='valid', subsample=(4, 4)),
-        BatchRenormalization(),
-
-        #
+        # 39x79x24
+        Convolution2D(36, 5, 5, activation='elu', border_mode='valid', subsample=(2, 2)),
+        # 18x38x36
+        Convolution2D(48, 2, 2, activation='elu', border_mode='valid', subsample=(2, 2)),
+        # 9x19x48
+        Convolution2D(64, 3, 3, activation='elu', border_mode='valid'),
+        # 7x17x64
+        Convolution2D(64, 3, 3, activation='elu', border_mode='valid'),
+        # 5x15x64
+        Convolution2D(128, 3, 3, activation='elu', border_mode='valid'),
+        # 3x13x128
+        Convolution2D(128, 3, 3, activation='elu', border_mode='valid'),
+        # 1x11x128
+        Flatten()
     ])
+    model.compile(optimizer='adam', loss='mse')
+    return model
