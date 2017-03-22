@@ -49,8 +49,8 @@ def generateImagesFromPaths(data, batchSize, timeLength, inputShape, outputShape
     while 1:
         returnArr = np.zeros((batchSize, timeLength, inputShape[0], inputShape[1], inputShape[2]))
         vecArr = np.zeros((batchSize, timeLength, 6))
-        labels = np.zeros((batchSize, timeLength, 1))
-        weights = np.zeros((batchSize, timeLength))
+        labels = np.zeros((batchSize, 1))
+        weights = np.zeros((batchSize))
         for j in range(batchSize):
             start += timeLength
             start %=(len(data)-timeLength)
@@ -68,9 +68,9 @@ def generateImagesFromPaths(data, batchSize, timeLength, inputShape, outputShape
                 #    label[0] *= -1
                 #if(train):
                 #    image, label[0] = augmentImage(image, label[0])
-                labels[j,i,0] = label[0]
+                labels[j,0] = label[0]
                 returnArr[j,i] = image            
-                weights[j,i] = row['norm']
+                weights[j] = row['norm']
                 xVector = np.array([val + np.random.rand()*0.02 - 0.01 for val in xVector])
                 vecArr[j,i] = xVector
                 #plt.imshow(image)
@@ -190,9 +190,9 @@ def main():
     imShape = preprocessImage(mpimg.imread(dataTrain['center'].iloc[0])).shape
     print(imShape)
     
-    timeLength = 1
+    timeLength = 16
     batchSize = 1
-    epochBatchSize = 2048
+    epochBatchSize = 1024
     
     trainGenerator = generateImagesFromPaths(dataTrain, batchSize, timeLength, imShape, [3], transform, angles, images, True)
     t = time.time()
@@ -204,9 +204,6 @@ def main():
     t = time.time()
     valGenerator.__next__()
     print("Time to build validation batch: ", time.time()-t)
-    stopCallback = EarlyStopping(monitor='val_loss', patience = 5, min_delta = 0.)
-    checkCallback = ModelCheckpoint('model.ckpt', monitor='val_loss', save_best_only=True)
-    visCallback = TensorBoard(log_dir = './logs')
     model = load_model('initModel.h5', custom_objects={'customLoss':customLoss})
     prevWeights = []
     for layer in model.layers:
@@ -242,52 +239,52 @@ def main():
     xOut = TimeDistributed(Flatten())(xC)
     del prevWeights
 
-    xOut = LSTM(1024, stateful=True, return_sequences=True)(xOut)
+    xOut = LSTM(1024)(xOut)
         
-    xOut = TimeDistributed(Dense(100))(xOut)
-    xOut = TimeDistributed(BatchNormalization())(xOut)
+    xOut = Dense(100)(xOut)
+    xOut = BatchNormalization()(xOut)
     xOut = Activation('elu')(xOut)
-    xOut = TimeDistributed(Dense(50))(xOut)
-    xOut = TimeDistributed(BatchNormalization())(xOut)
+    xOut = Dense(50)(xOut)
+    xOut = BatchNormalization()(xOut)
     xOut = Activation('elu')(xOut)
     xOut = Dropout(.3)(xOut)
-    xOut = TimeDistributed(Dense(10))(xOut)
-    xOut = TimeDistributed(BatchNormalization())(xOut)
+    xOut = Dense(10)(xOut)
+    xOut = BatchNormalization()(xOut)
     xOut = Activation('elu')(xOut)
-    xOut = TimeDistributed(Dense(1, activation='sigmoid'))(xOut)
+    xOut = Dense(1, activation='sigmoid')(xOut)
     xOut = Lambda(lambda x: x*2-1, name = 'output')(xOut)
     
     print(xOut.get_shape())
     
     endModel = Model((inpC), xOut)
-    endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'],sample_weight_mode='temporal')
+    endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'])
     valErrorComp = 2
     counter = 0
-    for i in range(20):
+    for i in range(100):
         print("Epoch: ", i)
         trainError = 0
         for j in range(epochBatchSize//2):
             x, y, weight = trainGenerator.__next__()
             trainError += endModel.train_on_batch(x, y, weight)[0]
-            #if j%256==0: print(j)
+            if j%256==0: print(j)
         endModel.reset_states()
         for j in range(epochBatchSize//2):
             x, y, weight = trainGenerator.__next__()
             trainError += endModel.train_on_batch(mirrorImage(x), -1.*y, weight)[0]
-            #if j%256==0: print(j)
+            if j%256==0: print(j)
         print("Train Error", trainError/epochBatchSize)
         endModel.reset_states()
         valError = 0
         for j in range(len(dataVal)//5):
             x, y, weight = valGenerator.__next__()
             valError += endModel.test_on_batch(x, y, weight)[0]
-            #if j%256==0: print(j)
+            if j%256==0: print(j)
         endModel.reset_states()
         for j in range(len(dataVal)//5):
             x, y, weight = valGenerator.__next__()
             valError += endModel.test_on_batch(mirrorImage(x), -1.*y, weight)[0]
-            #if j%256==0: print(j)
-        valError/=epochBatchSize
+            if j%256==0: print(j)
+        valError/=len(dataVal)//5
         print("Validation Error", valError)
         endModel.reset_states()
         counter += 1

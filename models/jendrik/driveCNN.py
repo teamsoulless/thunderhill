@@ -13,7 +13,7 @@ from flask import Flask
 from io import BytesIO
 
 from keras.models import load_model
-from main import preprocessImage, customLoss
+from main import preprocessImages, customLoss
 from Preprocess import perspectiveTransform
 from matplotlib import image as mpimg
 import cv2
@@ -42,7 +42,7 @@ def staticVar(**kwargs):
     return decorate
 
 #static Var to store the previous steering angles
-@staticVar(angles = list(np.zeros(1)))
+@staticVar(angles = list(np.zeros(5)))
 @sio.on('telemetry')
 def telemetry(sid, data):
     if data:
@@ -65,8 +65,8 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image).astype(np.uint8)
-        steering_angle = float(model.predict([preprocessImage(image_array)[None,:,:,:],
-                                              np.array(telemetry.angles)], batch_size=1))
+        steering_angle = float(model.predict([preprocessImages(image_array[None,:,:,:]),
+                                              np.array(telemetry.angles)[None,:]], batch_size=1))
         telemetry.angles.pop(0)
         telemetry.angles.append(steering_angle)
         throttle = (50. - float(speed))*.05
