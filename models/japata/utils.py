@@ -80,6 +80,7 @@ def load_data(path, file):
                                          'Throttle', 'Break', 'Speed', 'Lat', 'Long'])
     data = {
         'angles': df['SteeringAngle'].astype('float32').as_matrix(),
+        'speed': df['Speed'].astype('float32').as_matrix(),
         'center': np.array([path + str(im).replace(' ', '').replace('\\', '/') for im in df['CenterImage'].as_matrix()]),
         'right': np.array([path + str(im).replace(' ', '').replace('\\', '/') for im in df['RightImage'].as_matrix()]),
         'left': np.array([path + str(im).replace(' ', '').replace('\\', '/') for im in df['LeftImage'].as_matrix()])
