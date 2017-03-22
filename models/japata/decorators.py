@@ -68,3 +68,13 @@ def timeit(f):
         _f.avg_runtime = np.mean(runtimes)
         return result
     return _f
+
+
+@decorator
+def staticVars(**kwargs):
+    """This function allows C-Like static variables definitions"""
+    def _f(f):
+        for k in kwargs:
+            setattr(f, k, kwargs[k])
+        return f
+    return _f
