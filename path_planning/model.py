@@ -26,7 +26,6 @@ class PidModel:
         self.prev_point = [0,0]
         self.cte = 0.0
 
-
         filename = 'data/000/driving_log.csv'
         self.position_data = self.load_simulator_data(filename)
 
