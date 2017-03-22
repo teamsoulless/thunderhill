@@ -1,0 +1,11 @@
+BATCH_SIZE = 512
+EPOCHS = 1000
+FORMAT = '%(asctime)-15s %(clientip)s %(user)-8s %(message)s'
+# WIDTH = 66
+# HEIGHT = 200
+WIDTH = 160
+HEIGHT = 80
+DEPTH = 3
+ALPHA = 0.001
+DROPOUT = 0.6
+OUTPUT = '.hdf5_checkpoints'
