@@ -88,6 +88,14 @@ class PidModel:
         else:
             self.sequence = sequence
 
+    def _update_image(self, cte_idx):
+        cp = (int(self.x), int(self.y))
+        cv2.circle(self.pathimg, cp, 2, (255, 255, 255))
+        cv2.circle(self.pathimg, self.keypoints[cte_idx], 2, (255, 255, 0))
+        cv2.line(self.pathimg, cp, self.keypoints[cte_idx], (255, 0, 0))
+        cv2.imwrite("image.png", self.pathimg)
+
+
     def _update(self):
         cte, cte_idx = self.get_cte()
         direction = self.steer_turn_by(self.keypoints[cte_idx])
@@ -97,15 +105,12 @@ class PidModel:
         if direction < 0.0:
             steer *= -1
 
-        """
-        cv2.circle(img, (int(px), int(py)), 2, (255, 255, 255))
-        cv2.circle(img, keypoints[tpidx], 2, (255, 255, 0))
-        cv2.line(img, cp, keypoints[tpidx], (255, 0, 0))
-        cv2.imwrite("image.png", img)
-        """
         self.int_cte += cte
         self.steering_angle = steer
         self.cte = cte
+
+        if self.sequence % 20 == 0:
+            self._update_image(cte_idx)
 
     def predict(self, sequence, steering_angle, throttle, speed, imgString, position, rotation):
         self.steering_angle = steering_angle
