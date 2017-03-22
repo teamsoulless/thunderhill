@@ -224,8 +224,8 @@ if __name__ == '__main__':
     history = model.fit_generator(
         generate_thunderhill_batches(genAll(args.dataset), args.batch),
         epochs=args.epoch,
-        steps_per_epoch=args.batch*50,
+        steps_per_epoch=50,
         validation_data=generate_thunderhill_batches(genSim001(args.dataset), args.batch),
-        validation_steps=args.batch*5,
+        validation_steps=5,
         callbacks=[checkpointer, logger, board]#, early_stop]
     )
