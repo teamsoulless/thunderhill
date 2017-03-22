@@ -77,7 +77,7 @@ def get_nearest_point(keypoints, cp):
 
     return min_idx
 
-prev_point = None
+prev_point = [0,0]
 count = 0
 target_speed = 15.0
 prevcte = 0.0
@@ -123,8 +123,6 @@ def telemetry(sid, data):
             steer *= -1
 
     int_cte += cte
-
-
     print(prev_point, ",", cp, ",", target, "tpidx: ", tpidx, "car_orientation: ", rad2deg(car_orientation), "heading : ", rad2deg(steer))
 
     steering_angle = steer
