@@ -13,8 +13,7 @@ from flask import Flask
 from io import BytesIO
 
 from keras.models import load_model
-from main import preprocessImage, customLoss
-from Preprocess import perspectiveTransform
+from mainMultiple import preprocessImage, customLoss, toGPS
 from matplotlib import image as mpimg
 import cv2
 import functools
@@ -27,11 +26,6 @@ prev_image_array = None
 
 img = mpimg.imread('./simulator/data/data/IMG/center_2016_12_01_13_30_48_287.jpg')
 h, w = img.shape[:2]
-src = np.float32([[w/2 - 57, h/2], [w/2 + 57, h/2], [w+140,h], [-140,h]])
-dst = np.float32([[w/4,0], [w*3/4,0], [w*3/4,h], [w/4,h]])
-M = cv2.getPerspectiveTransform(src, dst)
-invM = cv2.getPerspectiveTransform(dst, src)
-transform = functools.partial(perspectiveTransform, M = M)
 
 def staticVar(**kwargs):
     """This function allows to define C-Like
@@ -55,19 +49,21 @@ def telemetry(sid, data):
         speed = data["speed"]
         splitPos = data["position"].split(":")
         splitOri = data["rotation"].split(":")
-        xVec = [float(splitPos[0]),float(splitPos[1]),float(splitPos[2]),
-                float(splitOri[0]),float(splitOri[1]),float(splitOri[2])]
-        for i, mean, std in zip([0,1,2,3,4,5],
-                            [1341.087, 952.593, 20.163, 285.139, 187.297, 130.168],
-                             [111.249, 258.177, 10.249, 143.113, 105.443, 170.460]):
+        xVec = toGPS(float(splitPos[0]),float(splitPos[1]))
+        print(xVec)
+        for i, mean, std in zip([0,1],
+                            [-122.33790211, 39.53881540],
+                             [0.00099555, 0.00180817]):
             xVec[i] -= mean
             xVec[i] /= std
+        print(xVec)
         # The current image from the center camera of the car
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image).astype(np.uint8)
         t = time.time()
-        steering_angle, throttle, breakVal = model.predict([preprocessImage(image_array)[None,:,:,:]])#,np.array(telemetry.angles)[None,:]])
+        steering_angle, throttle, breakVal = model.predict([preprocessImage(image_array)[None,:,:,:], 
+                                                            xVec[None,:]])#,np.array(telemetry.angles)[None,:]])
         print(time.time() - t, steering_angle, throttle, breakVal)
         steering_angle = float(steering_angle)
         throttle = float(throttle)
