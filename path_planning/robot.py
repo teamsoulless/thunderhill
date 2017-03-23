@@ -25,7 +25,7 @@ import random
 # this is the robot class
 #
 
-class robot:
+class Robot:
 
     # --------
     # init: 
@@ -89,7 +89,7 @@ class robot:
 
 
         # make a new copy
-        res = robot()
+        res = Robot()
         res.length         = self.length
         res.steering_noise = self.steering_noise
         res.distance_noise = self.distance_noise
