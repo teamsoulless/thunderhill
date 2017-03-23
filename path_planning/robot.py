@@ -25,14 +25,14 @@ import random
 # this is the robot class
 #
 
-class robot:
+class Robot:
 
     # --------
     # init: 
     #    creates robot and initializes location/orientation to 0, 0, 0
     #
 
-    def __init__(self, length = 1.):
+    def __init__(self, length = 3.):
         self.x = 0.0
         self.y = 0.0
         self.orientation = 0.0
@@ -78,7 +78,7 @@ class robot:
     #    distance = total distance driven, most be non-negative
 
     def move(self, steering, distance, 
-             tolerance = 0.001, max_steering_angle = pi / 4.0):
+             tolerance = 0.001, max_steering_angle = pi / 8.0):
 
         if steering > max_steering_angle:
             steering = max_steering_angle
@@ -89,7 +89,7 @@ class robot:
 
 
         # make a new copy
-        res = robot()
+        res = Robot()
         res.length         = self.length
         res.steering_noise = self.steering_noise
         res.distance_noise = self.distance_noise
