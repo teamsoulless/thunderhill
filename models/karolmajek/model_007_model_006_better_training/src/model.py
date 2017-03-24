@@ -76,7 +76,7 @@ def createModel(learning_rate, dropout):
     x = Flatten()(x)
 
 
-    speed_input = Input(shape=(8,), name='speed_input')
+    speed_input = Input(shape=(16,), name='speed_input')
     xx = Dense(50)(speed_input)
     xx = ELU()(xx)
     xx = Dense(100)(speed_input)
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     history = model.fit_generator(
         generate_thunderhill_batches(genAll(args.dataset), args.batch),
         epochs=args.epoch,
-        steps_per_epoch=50,
+        steps_per_epoch=100,
         validation_data=generate_thunderhill_batches(genSim001(args.dataset), args.batch),
         validation_steps=5,
         callbacks=[checkpointer, logger, board]#, early_stop]
