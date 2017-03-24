@@ -310,6 +310,6 @@ python3 drive.py ../model.json ../weights.0723-0.137.hdf5
 
 ### Results
 
-Set point 70 MPH (YouTube video):
+No set point!!! (YouTube video):
 
 [![70 mph](https://img.youtube.com/vi/Y36FVlPdfJk/0.jpg)](https://www.youtube.com/watch?v=Y36FVlPdfJk)
