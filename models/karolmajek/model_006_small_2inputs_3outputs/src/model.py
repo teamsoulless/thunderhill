@@ -98,59 +98,6 @@ def createModel(learning_rate, dropout):
     print(model.summary())
     return model
 
-    # input_shape=(HEIGHT, WIDTH, DEPTH)
-    # model_cnn = Sequential()
-    # model_cnn.add(Convolution2D(24,(5,5), padding='valid',input_shape=input_shape, strides=(2, 2), kernel_regularizer=l2(learning_rate)))
-    # model_cnn.add(ELU())
-    # model_cnn.add(Convolution2D(36,(5,5), strides=(2, 2), kernel_regularizer=l2(learning_rate)))
-    # model_cnn.add(ELU())
-    # model_cnn.add(Convolution2D(48,(5,5), strides=(2, 2), kernel_regularizer=l2(learning_rate)))
-    # model_cnn.add(ELU())
-    # model_cnn.add(Convolution2D(64,(3,3), strides=(2, 2), kernel_regularizer=l2(learning_rate)))
-    # model_cnn.add(ELU())
-    # model_cnn.add(Convolution2D(64,(3,3), strides=(2, 2), kernel_regularizer=l2(learning_rate)))
-    # model_cnn.add(ELU())
-    # model_cnn.add(Flatten())
-    #
-    # other_params = Sequential()
-    # other_params.add(Dense(32,input_shape=(8,)))
-    # other_params.add(ELU())
-    # other_params.add(Dense(32))
-    # other_params.add(ELU())
-    #
-    # model_cnn.add(Concatenate([model_cnn, other_params]))
-    # # merged = Concatenate([model_cnn, other_params])
-    # # merged = Merge([model_cnn, other_params], mode='concat')
-    # # model = Sequential()
-    # # model = model_cnn
-    # # model.add(merged)
-    #
-    # model_cnn.add(Dense(100))
-    # model_cnn.add(ELU())
-    # model_cnn.add(Dropout(dropout))
-    # model_cnn.add(Dense(50))
-    # model_cnn.add(ELU())
-    # model_cnn.add(Dropout(dropout))
-    # model_cnn.add(Dense(10))
-    # model_cnn.add(ELU())
-    # model_cnn.add(Dense(3))
-    # # x = Dense(100)(merged)
-    # # x = ELU()(x)
-    # # x = Dropout(dropout)(x)
-    # # x = Dense(50)(x)
-    # # x = ELU()(x)
-    # # x = Dropout(dropout)(x)
-    # # x = Dense(10)(x)
-    # # x = ELU()(x)
-    # # predictions = Dense(3)(x)
-    # # model = Model(output=predictions)
-    # # model.compile(optimizer='adam', loss='mse')
-    # # print(model.summary())
-    # # return model
-    # model_cnn.compile(optimizer='adam', loss='mse')
-    # print(model_cnn.summary())
-    # return model_cnn
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Steering angle model trainer')
     parser.add_argument('--batch', type=int, default=BATCH_SIZE, help='Batch size.')
@@ -172,17 +119,6 @@ if __name__ == '__main__':
     print('Model: {}'.format(args.output))
     print('-------------')
 
-    # for x in generate_thunderhill_batches(genAll(args.dataset), args.batch):
-    #     print(type(x))
-    #     print(len(x))
-    #     print(type(x[0][0]))
-    #     print(len(x[0][0]))
-    #     print(type(x[0][1]))
-    #     print(len(x[0][1]))
-    #     print(x[0][0])
-    #     print(x[0][1])
-    #     print(x[1])
-    #     exit(1)
     args.output='logs/'+args.output+'_%d'%int(time.time())
 
     if not os.path.exists(args.output):
@@ -193,12 +129,6 @@ if __name__ == '__main__':
     config = tf.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 0.8
     set_session(tf.Session(config=config))
-
-    # ROOT = '/Users/nando/Downloads/thunderhill_data/dataset_sim_000_km_few_laps'
-    # df_train, df_val = __train_test_split('{}/driving_log.csv'.format(ROOT), False)
-    # df_train, df_val = getDataFromFolder(args.dataset)
-    # print('TRAIN:', len(df_train))
-    # print('VALIDATION:', len(df_val))
 
     # model = NvidiaModel(args.alpha, args.dropout)
     model = createModel(args.alpha, args.dropout)

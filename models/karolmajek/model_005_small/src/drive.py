@@ -74,7 +74,7 @@ def telemetry(sid, data):
     image_array = cv2.cvtColor(np.asarray(image), code=cv2.COLOR_RGB2BGR)
     image_array = Preproc(image_array[50:-30,:,:])
     font = cv2.FONT_HERSHEY_SIMPLEX
-    print(image_array.shape)
+    # print(image_array.shape)
     transformed_image_array = image_array.reshape(1,80,160,3)
     # This model currently assumes that the features of the model are just the images. Feel free to change this.
     steering_angle = float(model.predict(transformed_image_array, batch_size=1))
@@ -97,8 +97,8 @@ def telemetry(sid, data):
     img=image_array+0.5
     cv2.putText(img,'%.1f %.1f'%(steering_angle, throttle),(10,150), font, 1,(0,0,255),1,cv2.LINE_AA)
 
-    cv2.imshow('img',img)
-    cv2.waitKey(1)
+    # cv2.imshow('img',img)
+    # cv2.waitKey(1)
 
     # print(steering_angle, throttle, float(speed))
     controller = SimplePIController(0.1, 0.01)
