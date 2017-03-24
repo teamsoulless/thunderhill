@@ -1,6 +1,30 @@
-#http://stackoverflow.com/questions/27461634/calculate-distance-between-a-point-and-a-line-segment-in-latitude-and-longitude
 import math
+from geopy.distance import vincenty
+from mpl_toolkits.basemap import Basemap
 
+p1 = (-122.34653, 39.53112)
+p2 = (-122.33591, 39.5434)
+
+zero = (-122.32115, 39.54733)
+ur = zero
+ll = p1
+
+mt = Basemap(llcrnrlon=ll[0],llcrnrlat=ll[1],urcrnrlon=ur[0], urcrnrlat=ur[1],
+    projection='merc',lon_0=zero[0],lat_0=zero[1],resolution='h', lat_ts=zero[1])
+
+diffx = 1060
+diffy = 845
+
+def rescale(simx,simy):
+    return 850-simx, 735-simy
+
+def toGPS(simx, simy):
+    simx, simy = rescale(int(simx),int(simy))
+    projx, projy = simx+diffx, simy + diffy
+    lon, lat = mt(projx, projy,inverse=True)
+    return [lon, lat]
+
+#http://stackoverflow.com/questions/27461634/calculate-distance-between-a-point-and-a-line-segment-in-latitude-and-longitude
 def point_dist(x1,y1,x2,y2):
     return math.sqrt((x1-x2)*(x1-x2) + (y1-y2) * (y1-y2))
 
@@ -57,3 +81,4 @@ def get_rot_z(p):
 
 def get_speed(p):
     return float(p[1][3])
+
