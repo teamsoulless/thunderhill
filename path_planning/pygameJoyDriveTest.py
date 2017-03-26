@@ -256,6 +256,8 @@ def toGPS(simx, simy):
 offsetx = 555578.648369298
 offsety = 4375769.19238589
 def toUTM(simx, simy):
+    simx = 1241.2 + (1241.2 - simx)
+    simy = 860.9 + (860.9 - simy)*1.05
     return [simx+offsetx, simy+offsety]
 
 ### initialize pygame and joystick
@@ -331,7 +333,7 @@ def telemetry(sid, data):
     # The driving model currently just outputs a constant throttle. Feel free to edit this.
 
     ### we can force the car to slow down using the up joystick movement.
-    throttle = 0.5 + updown
+    throttle = updown
     print(steering_angle, throttle)
     send_control(steering_angle, throttle)
 
