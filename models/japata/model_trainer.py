@@ -28,7 +28,7 @@ utils.setGlobals()
 # Create hyper-parameters
 Parameters = namedtuple('Parameters', [
     # General settings
-    'batch_size', 'max_epochs',
+    'batch_size', 'max_epochs', 'output_dims',
     # Model settings
     'l2_reg', 'keep_prob',
     # Optimizer settings
@@ -39,7 +39,7 @@ Parameters = namedtuple('Parameters', [
 
 params = Parameters(
     # General settings
-    batch_size=64, max_epochs=100,
+    batch_size=64, max_epochs=100, output_dims=2,
     # Model settings
     l2_reg=0.0, keep_prob=0.5,
     # Optimizer settings
@@ -50,19 +50,39 @@ params = Parameters(
 
 
 # NOTE: Steering angles
-data = utils.load_polysync_paths()
+path = os.getcwd() + '/'
+# polysync_data = utils.load_polysync_paths()
+#
+# polysync_paths, polysync_angs = utils.keep_n_percent_of_data_where(
+#     data=polysync_data['center'],
+#     values=polysync_data['angles'],
+#     condition_lambda=lambda x: abs(x) < 2e-1,
+#     percent=0.4
+#   )
+# polysync_angs /= np.max(polysync_angs)
+#
+# sim_paths, sim_angs = utils.concat_all_cameras(
+#     data=utils.load_data(path + 'thunderhill_data/dataset_sim_001_km_320x160/', 'driving_log.csv'),
+#     condition_lambda=lambda x: abs(x) < 1e-5,
+#     keep_percent=0.3,
+#     drop_camera='both'
+#   )
+#
+# sim_rec_paths, sim_rec_angs = utils.concat_all_cameras(
+#     data=utils.load_data(path + 'thunderhill_data/dataset_sim_002_km_320x160_recovery/', 'driving_log.csv'),
+#     condition_lambda=lambda x: abs(x) < 1e-5,
+#     keep_percent=0.3,
+#     drop_camera='both'
+#   )
 
-paths, angs = utils.keep_n_percent_of_data_where(
-    data=data['center'],
-    values=data['angles'],
-    condition_lambda=lambda x: abs(x) < 1e-3,
-    percent=0.4
-  )
+data = utils.load_data(path + 'thunderhill_data/dataset_sim_003_km_320x160/', 'driving_log.csv')
+data['speed'] /= np.max(data['speed'])
+sim3_paths, sim3_vals = data['center'], np.array(list(zip(data['angles'], data['speed'])))
 
 train_paths, val_paths, train_angs, val_angs = utils.split_data(
-    features=paths,
-    labels=angs,
-    test_size=0.1
+    features=sim3_paths,
+    labels=sim3_vals,
+    test_size=0.15
   )
 
 print('\nTraining size: %d | Validation size: %d\n' % (train_paths.shape[0], val_paths.shape[0]))
@@ -104,12 +124,12 @@ callbacks = [
 
 history = model.fit_generator(
     generator=utils.batch_generator(ims=train_paths, angs=train_angs, batch_size=params.batch_size,
-                                    augmentor=utils.augment_image, kwargs=params.kwargs, polysync=True),
+                                    augmentor=utils.augment_image, kwargs=params.kwargs),
     samples_per_epoch=25600,
     nb_epoch=params.max_epochs,
     # Halve the batch size, as `utils.val_augmentor` doubles the batch size by flipping the images and angles
     validation_data=utils.batch_generator(ims=val_paths, angs=val_angs, batch_size=params.batch_size//2,
-                                          augmentor=utils.val_augmentor, validation=True, polysync=True),
+                                          augmentor=utils.val_augmentor, validation=True),
     # Double the size of the validation set, as we are flipping the images to balance the right/left
     # distribution.
     nb_val_samples=2*val_angs.shape[0],
