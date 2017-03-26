@@ -244,6 +244,13 @@ UTM_path = [
     [556819.8483692978, 4376630.092385895],
 ]
 
+#initialize distance between way points
+for i in range(len(UTM_path)):
+    delta_x = UTM_path[i][0] - UTM_path[(i+1)%len(UTM_path)][0]
+    delta_y = UTM_path[i][1] - UTM_path[(i+1)%len(UTM_path)][1]
+    distance_to_next_waypoint = np.sqrt(delta_x*delta_x + delta_y*delta_y)
+    UTM_path[i].append(distance_to_next_waypoint)
+
 diffx = 0 # -989.70
 diffy = 0 # -58.984
 
@@ -259,6 +266,60 @@ def toUTM(simx, simy):
     simx = 1241.2 + (1241.2 - simx)
     simy = 860.9 + (860.9 - simy)*1.05
     return [simx+offsetx, simy+offsety]
+
+# CTE and distance calculations
+k = -1
+d = [ 100000.0, 100000.0, 100000.0, 100000.0]
+
+# calculate d0 to d3
+def calculateD(p):
+    for i in range(4):
+        delta_x = UTM_path[(k+i-1)%len(UTM_path)][0] - p[0]
+        delta_y = UTM_path[(k+i-1)%len(UTM_path)][1] - p[1]
+        d[3-i] = np.sqrt(delta_x*delta_x + delta_y*delta_y)
+
+# calculate CTE and distance to next waypoint
+def CTEandDistance(k, p):
+    # initialize k?
+    if k < 0:
+        for i in range(len(UTM_path)):
+            delta_x = UTM_path[i][0] - p[0]
+            delta_y = UTM_path[i][1] - p[1]
+            distance_to_waypoint = np.sqrt(delta_x*delta_x + delta_y*delta_y)
+            if d[2] > distance_to_waypoint:
+                d[2] = distance_to_waypoint
+                k = i
+    # calculate d0 to d3
+    calculateD(p)
+
+    # do we need to update k?
+    # going to next away point
+    if d[0] < d[2]:
+        k = (k+1)%len(UTM_path)
+        calculateD(p)
+
+    # going to previous away point
+    if d[3] < d[1]:
+        k = (k-1)%len(UTM_path)
+        calculateD(p)
+
+    # calculate angle from current waypoint
+    d1_2 = d[1]*d[1]
+    d2_2 = d[2]*d[2]
+    lk_2 = UTM_path[k][2]*UTM_path[k][2]
+    div = (2*d[2]*UTM_path[k][2])
+    if div != 0:
+        a = np.arccos((d2_2 + lk_2 - d1_2)/div)
+
+        # calculate CTE and distance to next waypoint
+        CTE = np.sin(a)*UTM_path[k][2]
+        distance_to_next_waypoint = np.cos(a)*UTM_path[k][2]
+    else:
+        CTE = 0.0
+        distance_to_next_waypoint = UTM_path[k][2]
+
+    # return results
+    return CTE, distance_to_next_waypoint
 
 ### initialize pygame and joystick
 ### modify for keyboard starting here!
@@ -296,7 +357,9 @@ def telemetry(sid, data):
     simx = float(simx)
     simy = float(simy)
     print("GPS lat/lon: ", toGPS(simx, simy))
-    print("GPS UTM: ", toUTM(simx, simy))
+    UTMp = toUTM(simx, simy)
+    print("GPS UTM: ", UTMp)
+    print("CTE and next waypoint: ", CTEandDistance(k, UTMp))
 
     ### Maybe use recording flag to start image data collection?
     recording = False
