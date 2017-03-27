@@ -45,7 +45,6 @@ UTM_path = [
     [556765.2140497837, 4376787.41731796],
     [556746.6380893289, 4376822.064872666],
     [556742.5447797973, 4376830.636468087],
-    [556742.5447797973, 4376830.636468087],
     [556741.9244143113, 4376836.714101026],
     [556742.1040275982, 4376842.68661478],
     [556743.1092729353, 4376847.399914415],
@@ -61,7 +60,6 @@ UTM_path = [
     [556814.171765087, 4376900.952091674],
     [556825.9152920799, 4376902.64771292],
     [556833.9656089155, 4376905.237416394],
-    [556833.9656089155, 4376905.237416394],
     [556843.8337940382, 4376910.704001542],
     [556852.3134213871, 4376916.848522062],
     [556860.2090013095, 4376925.286226419],
@@ -75,7 +73,6 @@ UTM_path = [
     [556864.0714360261, 4376994.871322429],
     [556859.303022026, 4377000.5854819575],
     [556855.2408456483, 4377004.917476291],
-    [556851.1821005888, 4377008.783344851],
     [556851.1821005888, 4377008.783344851],
     [556843.9947298435, 4377013.902588822],
     [556836.1275991215, 4377017.973548311],
@@ -116,14 +113,12 @@ UTM_path = [
     [556492.266914263, 4376681.988350871],
     [556494.1614199451, 4376675.5759448605],
     [556495.6993857024, 4376669.738075969],
-    [556495.6993857024, 4376669.738075969],
     [556497.937712214, 4376663.317083599],
     [556500.3834163146, 4376659.095182666],
     [556504.6853705766, 4376654.87574512],
     [556510.5968031748, 4376650.324004872],
     [556517.7622229807, 4376647.046703596],
     [556523.4206405458, 4376645.367730853],
-    [556531.4956595218, 4376644.627631856],
     [556531.4956595218, 4376644.627631856],
     [556538.1913655276, 4376643.300316806],
     [556543.5077593034, 4376641.385782115],
@@ -133,7 +128,6 @@ UTM_path = [
     [556625.41272605, 4376583.094415237],
     [556629.5944826928, 4376578.874165656],
     [556633.8946226767, 4376573.744677827],
-    [556633.8946226767, 4376573.744677827],
     [556637.7427283516, 4376568.145729547],
     [556640.3164867894, 4376562.881515558],
     [556642.0874201854, 4376556.934391812],
@@ -141,17 +135,14 @@ UTM_path = [
     [556645.2261046184, 4376537.900619624],
     [556644.5939186545, 4376529.172278329],
     [556642.5011432761, 4376516.870503548],
-    [556642.5011432761, 4376516.870503548],
     [556640.9426985707, 4376509.056585676],
     [556639.610424291, 4376502.043443069],
     [556639.1867659474, 4376496.524202927],
     [556639.7037260353, 4376489.302625273],
     [556640.8066145477, 4376480.697980016],
-    [556640.8066145477, 4376480.697980016],
     [556642.5894319536, 4376473.130509078],
     [556652.0281048274, 4376443.465770014],
     [556653.0828299529, 4376440.265922629],
-    [556654.2755882231, 4376434.647533262],
     [556654.2755882231, 4376434.647533262],
     [556655.156551918, 4376424.665005215],
     [556655.350027005, 4376414.677441572],
@@ -173,7 +164,6 @@ UTM_path = [
     [556625.6039453042, 4376227.110768979],
     [556633.0429528294, 4376218.219546603],
     [556641.0485826668, 4376210.586651885],
-    [556641.0485826668, 4376210.586651885],
     [556649.6352787388, 4376203.41307418],
     [556661.2067244762, 4376197.071586001],
     [556676.9223657108, 4376191.67058579],
@@ -192,7 +182,6 @@ UTM_path = [
     [556809.6299566904, 4376138.6925011985],
     [556819.0831754148, 4376137.60765109],
     [556828.5365113092, 4376137.677095531],
-    [556828.5365113092, 4376137.677095531],
     [556834.9803685388, 4376139.111797304],
     [556868.1129967818, 4376148.300997177],
     [556873.727140218, 4376152.704128489],
@@ -203,7 +192,6 @@ UTM_path = [
     [556863.2828333359, 4376177.544303506],
     [556825.48893115, 4376192.194541831],
     [556820.0459741531, 4376194.907077011],
-    [556811.9478282619, 4376199.897579757],
     [556811.9478282619, 4376199.897579757],
     [556803.4821852093, 4376206.949781476],
     [556799.4160940523, 4376210.593648152],
@@ -241,15 +229,21 @@ UTM_path = [
     [556845.2294152384, 4376375.892702398],
     [556849.457292943, 4376380.6296974085],
     [556850.3059291652, 4376390.280854663],
-    [556819.8483692978, 4376630.092385895],
 ]
 
-#initialize distance between way points
+#calculate new way points and initialize distance between way points
 for i in range(len(UTM_path)):
     delta_x = UTM_path[i][0] - UTM_path[(i+1)%len(UTM_path)][0]
     delta_y = UTM_path[i][1] - UTM_path[(i+1)%len(UTM_path)][1]
     distance_to_next_waypoint = np.sqrt(delta_x*delta_x + delta_y*delta_y)
+    if distance_to_next_waypoint == 0.0:
+       print(i, "entry has length == 0.0 to last waypoint")
     UTM_path[i].append(distance_to_next_waypoint)
+    if delta_x != 0.0:
+        slope = delta_y/delta_x
+    else:
+       print(i, "division == 0.0 to last waypoint")
+    UTM_path[i].append(slope)
 
 diffx = 0 # -989.70
 diffy = 0 # -58.984
@@ -268,56 +262,69 @@ def toUTM(simx, simy):
     return [simx+offsetx, simy+offsety]
 
 # CTE and distance calculations
-k = -1
-d = [ 100000.0, 100000.0, 100000.0, 100000.0]
+def sqr(x):
+    return x * x
 
-# calculate d0 to d3
-def calculateD(p):
-    for i in range(4):
-        delta_x = UTM_path[(k+i-1)%len(UTM_path)][0] - p[0]
-        delta_y = UTM_path[(k+i-1)%len(UTM_path)][1] - p[1]
-        d[3-i] = np.sqrt(delta_x*delta_x + delta_y*delta_y)
+def dist2(v, w):
+    return sqr(v[0] - w[0]) + sqr(v[1] - w[1])
 
-# calculate CTE and distance to next waypoint
-def CTEandDistance(k, p):
-    # initialize k?
-    if k < 0:
-        for i in range(len(UTM_path)):
-            delta_x = UTM_path[i][0] - p[0]
-            delta_y = UTM_path[i][1] - p[1]
-            distance_to_waypoint = np.sqrt(delta_x*delta_x + delta_y*delta_y)
-            if d[2] > distance_to_waypoint:
-                d[2] = distance_to_waypoint
-                k = i
-    # calculate d0 to d3
-    calculateD(p)
+def midPointSegment(p, v, w):
+    l2 = dist2(v, w)
+    if (l2 == 0):
+        return v
 
-    # do we need to update k?
-    # going to next away point
-    if d[0] < d[2]:
-        k = (k+1)%len(UTM_path)
-        calculateD(p)
+    t = ((p[0] - v[0]) * (w[0] - v[0]) + (p[1] - v[1])*(w[1] - v[1])) / l2
+    t = np.max([0, np.min([1, t])])
+    midp = [(v[0]+t*(w[0]-v[0])), (v[1]+t*(w[1]-v[1]))]
+    return midp
 
-    # going to previous away point
-    if d[3] < d[1]:
-        k = (k-1)%len(UTM_path)
-        calculateD(p)
+def distToSegmentSquared(p, v, w):
+    midp = midPointSegment(p, v, w)
+    return dist2(p, midp)
 
-    # calculate angle from current waypoint
-    d1_2 = d[1]*d[1]
-    d2_2 = d[2]*d[2]
-    lk_2 = UTM_path[k][2]*UTM_path[k][2]
-    div = (2*d[2]*UTM_path[k][2])
-    if div != 0:
-        a = np.arccos((d2_2 + lk_2 - d1_2)/div)
+def distToSegment(p, v, w):
+    return np.sqrt(distToSegmentSquared(p, v, w))
 
-        # calculate CTE and distance to next waypoint
-        CTE = np.sin(a)*UTM_path[k][2]
-        distance_to_next_waypoint = np.cos(a)*UTM_path[k][2]
-    else:
-        CTE = 0.0
-        distance_to_next_waypoint = UTM_path[k][2]
+def closestPathSegmentMidpoint(nk, p):
+    kp0 = UTM_path[nk%len(UTM_path)]
+    kp1 = UTM_path[(nk+1)%len(UTM_path)]
+    return midPointSegment(p, kp0, kp1)
 
+def distToPathSegment(nk, p):
+    kp0 = UTM_path[nk%len(UTM_path)]
+    kp1 = UTM_path[(nk+1)%len(UTM_path)]
+    return distToSegment(p, kp0, kp1)
+
+def sideOfPoint(nk, p):
+    kp0 = UTM_path[nk%len(UTM_path)]
+    kp1 = UTM_path[(nk+1)%len(UTM_path)]
+    d = (p[0]-kp0[0])*(kp1[1]-kp0[1])-(p[1]-kp0[1])*(kp1[0]-kp0[0])
+    if d < 0.0:
+        return -1
+    return 1
+
+# find nearest waypoint and its CTE and distance to next waypoint
+k = 0
+def NearestWayPointCTEandDistance(p):
+    global k
+    distance_to_waypoint = 1000.0
+
+    # initialize k
+    n = k
+    for i in range(10):
+        distance = distToPathSegment(k+i-5, p)
+        if distance < distance_to_waypoint:
+            distance_to_waypoint = distance
+            n = k+i-5
+    k = n%len(UTM_path)
+
+    # get closest midpoint
+    midp = closestPathSegmentMidpoint(k, p)
+
+    # calculate CTE and distance to next waypoint
+    distance_to_next_waypoint = np.sqrt(dist2(UTM_path[(k+1)%len(UTM_path)], p))
+    CTE = sideOfPoint(k, p)*distToPathSegment(k, p)
+    
     # return results
     return CTE, distance_to_next_waypoint
 
@@ -359,7 +366,7 @@ def telemetry(sid, data):
     print("GPS lat/lon: ", toGPS(simx, simy))
     UTMp = toUTM(simx, simy)
     print("GPS UTM: ", UTMp)
-    print("CTE and next waypoint: ", CTEandDistance(k, UTMp))
+    print("Current waypoint", k, "CTE and distance to next waypoint: ", NearestWayPointCTEandDistance(UTMp))
 
     ### Maybe use recording flag to start image data collection?
     recording = False
