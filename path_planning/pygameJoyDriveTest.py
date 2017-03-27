@@ -329,9 +329,11 @@ def NearestWayPointCTEandDistance(p):
     return CTE, distance_to_next_waypoint
 
 ### initialize pygame and joystick
-### modify for keyboard starting here!
 pygame.init()
 pygame.joystick.init()
+
+### need a window to receive keyboard events
+pygame.display.set_mode((100, 100))
 
 ### Preprocessing...
 def preprocess(image):
@@ -370,14 +372,30 @@ def telemetry(sid, data):
 
     ### Maybe use recording flag to start image data collection?
     recording = False
+    keyleftright = 0.0
+    keyupdown = 0.0
     for event in pygame.event.get():
         if event.type == pygame.JOYAXISMOTION:
             print("Joystick moved")
         if event.type == pygame.JOYBUTTONDOWN:
             print("Joystick button pressed.")
 
-    ### Get joystick and initialize
     ### Modify/Add here for keyboard interface
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        print("left key pressed.")
+        keyleftright = float(steering_angle) - 0.1
+    if keys[pygame.K_RIGHT]:
+        print("right key pressed.")
+        keyleftright = float(steering_angle) + 0.1
+    if keys[pygame.K_UP]:
+        print("up key pressed.")
+        keyupdown = float(throttle) + 0.1
+    if keys[pygame.K_DOWN]:
+        print("down key pressed.")
+        keyupdown = float(throttle) - 0.1
+
+    ### Get joystick and initialize
     joystick = pygame.joystick.Joystick(0)
     joystick.init()
 
@@ -399,11 +417,11 @@ def telemetry(sid, data):
     transformed_image_array = image_array[None, :, :, :]
     # This model currently assumes that the features of the model are just the images. Feel free to change this.
     #steering_angle = float(model.predict(transformed_image_array, batch_size=1)) + leftright
-    steering_angle = leftright
+    steering_angle = leftright + keyleftright
     # The driving model currently just outputs a constant throttle. Feel free to edit this.
 
     ### we can force the car to slow down using the up joystick movement.
-    throttle = updown
+    throttle = updown + keyupdown
     print(steering_angle, throttle)
     send_control(steering_angle, throttle)
 
