@@ -93,7 +93,7 @@ def generate_thunderhill_batches(gen, batch_size):
                 tasks.append((img1, steering_angle1, throttle, brake, speed))
 
                 if len(tasks)==BATCH_SIZE:
-                    results = dispatch_tasks(worker, tasks, 1)#multiprocessing.cpu_count())
+                    results = dispatch_tasks(worker, tasks, multiprocessing.cpu_count())
                     tasks=[]
                     for i,result in enumerate(results):
                         res_list = result.get()
