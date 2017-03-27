@@ -175,8 +175,6 @@ Preprocessing images.
 def Preproc(img):
     if img.size == 0:
         return img
-    img=img.astype(np.float32)
-    img=-0.5+img/255
     preproc = Preprocess([
         Resize(WIDTH,HEIGHT),
     ])
@@ -280,7 +278,7 @@ def speedToClass(speed):
 
 def RandomNoise(img):
     rnd=np.random.rand(int(img.shape[0]/2),int(img.shape[1]/2))
-    rnd=(0.3+rnd)/1.3
+    rnd=0.5+rnd*0.5
     rnd=np.dstack([rnd,rnd,rnd])
     rnd = cv2.GaussianBlur(rnd,(5,5),0)
     rnd = cv2.resize(rnd, (img.shape[1],img.shape[0]))

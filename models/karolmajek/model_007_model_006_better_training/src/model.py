@@ -130,6 +130,9 @@ if __name__ == '__main__':
     config.gpu_options.per_process_gpu_memory_fraction = 0.8
     set_session(tf.Session(config=config))
 
+
+
+
     # model = NvidiaModel(args.alpha, args.dropout)
     model = createModel(args.alpha, args.dropout)
 
