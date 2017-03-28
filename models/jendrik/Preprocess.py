@@ -77,22 +77,22 @@ def applyNormalisation(image):
     return (image - 128.) / 128.
 
 def augmentImage(image, label):
-    rot = np.random.randint(-20,21)
+    rot = int(np.random.rand()**2*90 -45)
     image = rotateImage(image, rot)
     # Add a part of the rotated angle, as it is counted counter-clockwise.
     # If you turn counter-clockwise, this looks like the car would be more left
     # and needs to drive to the right -> add some angle 
     # divide it by the maximum of the steering angle in deg ->25
-    label[0] += .2*rot/(20)
-    label[1] -= .2*rot/20
+    label[0] += .5*rot/(45)
+    label[1] -= .1*rot/20
     label[2] += .1*rot/20
     shiftHor = np.random.randint(-40,41)
     shiftVer = np.random.randint(-10,11)
     image = shiftImg(image, shiftHor, shiftVer)
     #steering *= (1-shiftVer/100)
     label[0] += .4*shiftHor/(40)
-    label[1] -= .3*shiftHor/20
-    label[2] += .1*shiftHor/20
+    label[1] -= .2*shiftHor/40
+    label[2] += .2*shiftHor/40
     label[0] = min(max(label[0], -1),1)
     label[1] = min(max(label[1], -1),1)
     label[2] = min(max(label[2], -1),1)
@@ -121,7 +121,7 @@ def preprocessImage(image):
     an image to prepare them for the network
     """
     image = image[image.shape[0]*2//5:,:,:]
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
     #image = cv2.convertScaleAbs(image, alpha=(1))
     #image = addGradientLayer(image, 7, (100,255), (0, np.pi/2))
     image = applyNormalisation(image)
