@@ -58,7 +58,7 @@ def generateImagesFromPaths(data, batchSize, inputShape, outputShape, angles, tr
     while 1:
         returnArr = np.zeros((batchSize, inputShape[0], inputShape[1], inputShape[2]))
         angleArr = np.zeros((batchSize, ANGLESFED))
-        vecArr = np.zeros((batchSize, 2))
+        vecArr = np.zeros((batchSize, 3))
         labels = np.zeros((batchSize, outputShape[0]))
         weights = np.zeros(batchSize)
         indices = np.random.randint(0, len(data), batchSize)
@@ -67,7 +67,7 @@ def generateImagesFromPaths(data, batchSize, inputShape, outputShape, angles, tr
             image = preprocessImage(mpimg.imread(row['center'].strip()))
             #image = images[int(row['angleIndex'])]
             label = np.array([row['steering'], row['throttle'], row['brake']])
-            xVector = row[['long', 'lat']].values
+            xVector = row[['long', 'lat', 'speed']].values
             #if(image.shape[0] != 320): image = cv2.resize(image, (320, 160))
             flip = np.random.rand()
             if flip>.5:
@@ -182,7 +182,7 @@ def main():
     print(dataNew['norm'].unique())
     del data1, data2,data3, data4
     
-    for col in ['long', 'lat']:
+    for col in ['long', 'lat', 'speed']:
         vals = dataNew[col].values
         mean = np.mean(vals)
         std = np.std(vals)
@@ -254,14 +254,8 @@ def main():
         print(xC.get_shape())
         xOut = Flatten()(xC)
         
-        xVectorInp = Input(shape = (2,), name='input_3')
+        xVectorInp = Input(shape = (3,), name='input_3')
         xVector = Dropout(.1)(xVectorInp)
-        xVector = Dense(50)(xVectorInp)
-        xVector = BatchNormalization()(xVector)
-        xVector = Activation('elu')(xVector)
-        xVector = Dense(50)(xVector)
-        xVector = BatchNormalization()(xVector)
-        xVector = Activation('elu')(xVector)
         
         
         #inpAngles = Input(shape=(ANGLESFED,), name='input_2')
@@ -309,11 +303,11 @@ def main():
         endModel = Model((inpC, xVectorInp), (xOutSteer, xOutThr, xOutBre))
         endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'])
         endModel.fit_generator(trainGenerator, callbacks = [visCallback], 
-                               nb_epoch=100, samples_per_epoch=epochBatchSize, 
-                               max_q_size=8, nb_worker=8, pickle_safe=True)
+                               nb_epoch=50, samples_per_epoch=epochBatchSize, 
+                               max_q_size=24, nb_worker=8, pickle_safe=True)
         endModel.fit_generator(trainGenerator, callbacks = [stopCallback, checkCallback,visCallback], 
                                nb_epoch=300, samples_per_epoch=epochBatchSize, 
-                               max_q_size=8, validation_data = valGenerator, 
+                               max_q_size=24, validation_data = valGenerator, 
                                nb_val_samples=len(dataVal),
                                nb_worker=8, pickle_safe=True)
         endModel.load_weights('multiModel.ckpt')

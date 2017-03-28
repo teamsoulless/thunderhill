@@ -50,10 +50,14 @@ def telemetry(sid, data):
         splitPos = data["position"].split(":")
         splitOri = data["rotation"].split(":")
         xVec = toGPS(float(splitPos[0]),float(splitPos[1]))
+        xVec = list(xVec)
+        xVec.append(float(data["speed"]))
+        xVec = np.array(xVec)
         print(xVec)
-        for i, mean, std in zip([0,1],
-                            [-122.33790211, 39.53881540],
-                             [0.00099555, 0.00180817]):
+        
+        for i, mean, std in zip([0,1,2],
+                            [-122.33790211, 39.53881540, 62.68238949],
+                             [0.00099555, 0.00180817, 13.48539298]):
             xVec[i] -= mean
             xVec[i] /= std
         print(xVec)
@@ -67,8 +71,8 @@ def telemetry(sid, data):
         print(time.time() - t, steering_angle, throttle, breakVal)
         steering_angle = float(steering_angle)
         throttle = float(throttle)
-        if float(speed) > 50:
-            throttle -=.3
+        #if float(speed) > 50:
+        #    throttle -=.3
         breakVal = float(breakVal)
         telemetry.angles.pop(0)
         telemetry.angles.append(steering_angle)
