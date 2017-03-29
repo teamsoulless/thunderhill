@@ -457,7 +457,6 @@ def do_epoch(session, sequences, mode):
 # --------------------------------------------------------------------
 # Train/Validate and Save the Model
 # --------------------------------------------------------------------
-
 NUM_EPOCHS=10
 best_validation_score = None
 
