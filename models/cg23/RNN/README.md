@@ -1,4 +1,4 @@
-Stateful RNN/LSTM Fully Autonomous Model
+### Stateful RNN/LSTM Fully Autonomous Model
 
 SRC_LSTM.py – Main program for building and training tensorflow slim model.
 
