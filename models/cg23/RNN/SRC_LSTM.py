@@ -258,7 +258,7 @@ class SamplingRNNCell(tf.nn.rnn_cell.RNNCell):
         self._num_outputs = num_outputs
         self._use_ground_truth = use_ground_truth # boolean
         self._internal_cell = internal_cell # may be LSTM or GRU or anything
-  
+    
     @property
     def state_size(self):
         return self._num_outputs, self._internal_cell.state_size # previous output and bottleneck state
@@ -365,7 +365,7 @@ with graph.as_default():
     
     throttle_predictions = (out_autoregressive[:, :, 1])# * std[1]) + mean[1]
     output_throttle = tf.identity(throttle_predictions, name="output_throttle")
-   
+    
     brake_predictions = (out_autoregressive[:, :, 2])# * std[2]) + mean[2]
     output_brake = tf.identity(brake_predictions, name="output_brake")
     
@@ -373,7 +373,7 @@ with graph.as_default():
     controller_final_state_0 = tf.identity(controller_final_state_autoregressive[0], name="controller_final_state_0")
     controller_final_state_1 = tf.identity(controller_final_state_autoregressive[1][0], name="controller_final_state_1")
     controller_final_state_2 = tf.identity(controller_final_state_autoregressive[1][1], name="controller_final_state_2")
-  
+    
     # Output statistics
     total_loss = mse_autoregressive_steering + aux_cost_weight * (mse_gt + mse_autoregressive)
     optimizer = get_optimizer(total_loss, learning_rate)
