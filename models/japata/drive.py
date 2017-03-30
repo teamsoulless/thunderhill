@@ -26,7 +26,8 @@ utils.setGlobals()
 
 sio = socketio.Server()
 app = Flask(__name__)
-model = None
+steering_model = None
+speed_model = None
 visualizer = None
 prev_image_array = None
 
@@ -62,7 +63,7 @@ class SimplePIDController:
 
 
 controller = SimplePIDController(1.2, 0.002, 5.0)
-set_speed = 50
+set_speed = 0.
 controller.set_desired(set_speed)
 
 
@@ -80,16 +81,18 @@ def telemetry(sid, data):
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
 
-        if image_array.shape != (160, 320, 3):
-            image_array = cv2.resize(image_array, (320, 160))
-
         processed = utils.process_image(image_array)
 
-        steering_angle = float(model.predict(processed[None, :, :, :], batch_size=1))
+        steering_angle = float(steering_model.predict(processed[np.newaxis, ...], batch_size=1))
+        if speed_model is not None:
+            desired_speed = float(speed_model.predict(processed[np.newaxis, ...], batchsize=1))
+            throttle = controller.update(desired_speed - float(speed))
+            print('Steering: %0.4f | Throttle: %0.4f | Desired Speed: %0.4f'
+                  % (steering_angle, throttle, desired_speed))
+        else:
+            throttle = controller.update(float(speed))
+            print('Steering: %0.4f | Throttle: %0.4f' % (steering_angle, throttle))
 
-        throttle = controller.update(float(speed))
-
-        print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
         # save frame
@@ -148,6 +151,12 @@ if __name__ == '__main__':
         default='',
         help='Visualizes the activations of the given layer on the images stored in the `image_folder`.'
       )
+    parser.add_argument(
+        '--speed-model',
+        type=str,
+        default='',
+        help='Option to provide a second model for the desired speed.'
+    )
     args = parser.parse_args()
 
     # check that model Keras version is same as local Keras version
@@ -159,8 +168,13 @@ if __name__ == '__main__':
         print('You are using Keras version ', keras_version,
               ', but the model was built using ', model_version)
 
-    model = load_model(args.model, custom_objects={'BatchRenormalization': BatchRenormalization})
-    visualizer = VisualizeActivations(model, utils.process_image, utils.rectify_image)
+    steering_model = load_model(args.model, custom_objects={'BatchRenormalization': BatchRenormalization})
+    if args.speed_model != '':
+        speed_model = load_model(args.speed_model, custom_objects={'BatchRenormalization': BatchRenormalization})
+    else:
+        speed_model
+
+    visualizer = VisualizeActivations(steering_model, utils.process_image, utils.rectify_image)
 
     if args.image_folder != '':
         print("Creating image folder at {}".format(args.image_folder))
