@@ -24,6 +24,7 @@ __email__ = 'jpthalman@gmail.com'
 
 
 utils.setGlobals()
+np.random.seed(1234)
 
 # Create hyper-parameters
 Parameters = namedtuple('Parameters', [
@@ -39,17 +40,16 @@ Parameters = namedtuple('Parameters', [
 
 params = Parameters(
     # General settings
-    batch_size=64, max_epochs=100, output_dims=2,
+    batch_size=64, max_epochs=100, output_dims=1,
     # Model settings
     l2_reg=0.0, keep_prob=0.5,
     # Optimizer settings
-    learning_rate=3e-4, epsilon=1e-8, decay=0.0,
+    learning_rate=1e-4, epsilon=1e-8, decay=0.0,
     # Training settings
     min_delta=0.0, patience=4, kwargs={'prob': 1.0}
   )
 
 
-# NOTE: Steering angles
 path = os.getcwd() + '/'
 # polysync_data = utils.load_polysync_paths()
 #
@@ -76,8 +76,7 @@ path = os.getcwd() + '/'
 #   )
 
 data = utils.load_data(path + 'thunderhill_data/dataset_sim_003_km_320x160/', 'driving_log.csv')
-data['speed'] /= np.max(data['speed'])
-sim3_paths, sim3_vals = data['center'], np.array(list(zip(data['angles'], data['speed'])))
+sim3_paths, sim3_vals = data['center'], data['speed']
 
 train_paths, val_paths, train_angs, val_angs = utils.split_data(
     features=sim3_paths,
