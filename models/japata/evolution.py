@@ -96,7 +96,10 @@ class Population(object):
     def __init__(self, size, base_individual, mate_prob):
         self._size = size
         self._mate_prob = mate_prob
-        self._population = [base_individual.reset() for _ in range(size)]
+        self._population = [base_individual for _ in range(size)]
+
+        for ind in self._population:
+            ind.reset()
 
     def tournament(self, size):
         new_population = []
@@ -176,12 +179,12 @@ def train(generator,
     generations_without_improvement = 0
     leader = None
 
-    generations = trange(range(max_generations))
+    generations = trange(max_generations)
     for gen in generations:
         generations.set_description('GEN %i' % gen)
 
-        population.tournament(size=tournament_size)
         population.evolve(method=mate_and_or_mutate, generator=generator)
+        population.tournament(size=tournament_size)
 
         leader = population.leader
         fitness_history.append(leader.fitness)
@@ -198,6 +201,8 @@ def train(generator,
 
 
 if __name__ == '__main__':
+    np.random.seed(1234)
+
     individual = Individual(
         model_generator=models.evolutionary_feature_extractor,
         mu=0,

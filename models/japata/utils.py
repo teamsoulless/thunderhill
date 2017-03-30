@@ -5,7 +5,7 @@ import pandas as pd
 
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
-from decorators import n_images
+from decorators import n_images, staticVars
 
 
 def setGlobals():
@@ -56,7 +56,7 @@ def load_polysync_paths():
             filtered_ims = np.concatenate((filtered_ims, np.array(data['path'])[start:stop]))
 
         filtered_angs = np.array([float(ang) for ang in filtered_angs])
-        filtered_ims = np.array([data_folder + im for im in filtered_ims])
+        filtered_ims = np.array([data_folder + 'P' + im for im in filtered_ims])
 
         images = np.concatenate((images, filtered_ims))
         angles = np.concatenate((angles, filtered_angs))
@@ -81,6 +81,10 @@ def load_data(path, file):
     data = {
         'angles': df['SteeringAngle'].astype('float32').as_matrix(),
         'speed': df['Speed'].astype('float32').as_matrix(),
+        'throttle': df['Throttle'].astype('float32').as_matrix(),
+        'break': df['Break'].astype('float32').as_matrix(),
+        # 'lat': df['Lat'].astype('float32').as_matrix(),
+        # 'long': df['Long'].astype('float32').as_matrix(),
         'center': np.array([path + str(im).replace(' ', '').replace('\\', '/') for im in df['CenterImage'].as_matrix()]),
         'right': np.array([path + str(im).replace(' ', '').replace('\\', '/') for im in df['RightImage'].as_matrix()]),
         'left': np.array([path + str(im).replace(' ', '').replace('\\', '/') for im in df['LeftImage'].as_matrix()])
@@ -423,8 +427,6 @@ def augment_image(image, value, prob, im_normalizer=process_image):
     """
     assert image.ndim == 3, 'Image must have dimensions (h, w, ch)'
 
-    h, w, color_channels = image.shape
-
     # Flip the image and angle half the time. Effectively doubles the size of
     # the dataset while balancing the left and right turn proportions.
     if np.random.uniform(0.0, 1.0) < 0.5:
@@ -462,7 +464,7 @@ def val_augmentor(ims, vals):
            np.concatenate((vals, flipped_vals), axis=0)
 
 
-def batch_generator(ims, angs, batch_size, augmentor, kwargs={}, validation=False, polysync=False):
+def batch_generator(ims, angs, batch_size, augmentor, kwargs={}, validation=False):
     """
     Continuously generates batches from the provided images paths and angles.
 
@@ -512,12 +514,6 @@ def batch_generator(ims, angs, batch_size, augmentor, kwargs={}, validation=Fals
             loaded_ims = []
             for im_path in batch_x:
                 im = cv2.cvtColor(cv2.imread(im_path), cv2.COLOR_BGR2RGB)
-
-                if polysync:
-                    im = cv2.flip(im, 0)
-                    im = im[:, 375:1950 - 375]
-                    im = cv2.resize(im, (320, 160))
-
                 loaded_ims.append(im)
 
             batch_x = np.array(loaded_ims)
@@ -525,4 +521,60 @@ def batch_generator(ims, angs, batch_size, augmentor, kwargs={}, validation=Fals
 
             # Augment the images with the given function
             batch_x, batch_y = augmentor(batch_x, batch_y, **kwargs)
+            yield batch_x, batch_y
+
+
+def process_data_multi_output(data, delay=8):
+    ims = data['center']
+    angs = data['angles']
+    controls = data['throttle'] - data['break']
+
+    last_n_speeds = []
+    que = np.zeros(delay)
+
+    for s in data['speed']:
+        last_n_speeds.append(que)
+        que = que[1:]
+        que = np.append(que, s/100.)
+
+    inputs = [(path, speed) for path, speed in zip(ims, last_n_speeds)]
+    outputs = np.array([(ang, control) for ang, control in zip(angs, controls)])
+    return inputs, outputs
+
+
+def multi_output_batch_generator(inputs, outputs, batch_size, augmentor, kwargs={}, validation=False):
+    n_obs = outputs.shape[0]
+
+    while True:
+        batch_starts = np.arange(0, n_obs, batch_size)
+
+        # Decay the augmentation probability on every full pass through the data
+        if 'prob' in kwargs.keys():
+            kwargs['prob'] *= 0.98
+
+        for batch in np.random.permutation(batch_starts):
+            next_idx = batch + batch_size
+            batch_x = inputs[batch:min(next_idx, n_obs)]
+            batch_y = outputs[batch:min(next_idx, n_obs), ...]
+
+            # Ensure consistent batch size by adding random images to the last
+            # batch iff n_obs % batch_size != 0.
+            if next_idx > n_obs and not validation:
+                rand_idx = np.random.randint(0, n_obs-1, next_idx - n_obs)
+                for i in rand_idx:
+                    batch_x.append(inputs[i])
+                batch_y = np.concatenate((batch_y, outputs[rand_idx, ...]), axis=0)
+
+            # Load the images from their paths
+            loaded_ims = []
+            batch_controls = []
+            for im_path, controls in batch_x:
+                im = cv2.cvtColor(cv2.imread(im_path), cv2.COLOR_BGR2RGB)
+                loaded_ims.append(im)
+                batch_controls.append(controls)
+
+            # Augment the images with the given function
+            loaded_ims, batch_y[..., 0] = augmentor(np.array(loaded_ims), np.copy(batch_y[..., 0]), **kwargs)
+
+            batch_x = [np.array(loaded_ims), np.array(batch_controls)]
             yield batch_x, batch_y

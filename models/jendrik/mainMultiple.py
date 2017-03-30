@@ -88,7 +88,7 @@ def generateImagesFromPaths(data, batchSize, inputShape, outputShape, angles, tr
             else:
                 vecArr[i] = xVector
         yield({'input_1': returnArr,'input_2': angleArr,'input_3': np.array(vecArr)},
-              {'outputSteer': labels[:,0],'outputThr': labels[:,1],'outputBre': labels[:,2]}, [weights,weights,weights])
+              {'outputSteer': labels[:,0],'outputThr': labels[:,1] - labels[:,2]}, [weights,weights])
                 
 
 def customLoss(y_true, y_pred):
@@ -288,19 +288,9 @@ def main():
         xOutThr = Activation('elu')(xOutThr)
         xOutThr = Dense(1, activation='sigmoid')(xOutThr)
         xOutThr = Lambda(lambda x: x*2-1, name = 'outputThr')(xOutThr)
-        
-        xOutBre = Dense(50)(xEnd)
-        xOutBre = BatchNormalization()(xOutBre)
-        xOutBre = Activation('elu')(xOutBre)
-        xOutBre = Dropout(.3)(xOutBre)
-        xOutBre = Dense(10)(xOutBre)
-        xOutBre = BatchNormalization()(xOutBre)
-        xOutBre = Activation('elu')(xOutBre)
-        xOutBre = Dense(1, activation='sigmoid')(xOutBre)
-        xOutBre = Lambda(lambda x: x*2-1, name = 'outputBre')(xOutBre)
         #xRec = LSTM(10)(xOut)
         
-        endModel = Model((inpC, xVectorInp), (xOutSteer, xOutThr, xOutBre))
+        endModel = Model((inpC, xVectorInp), (xOutSteer, xOutThr))
         endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'])
         endModel.fit_generator(trainGenerator, callbacks = [visCallback], 
                                nb_epoch=50, samples_per_epoch=epochBatchSize, 
