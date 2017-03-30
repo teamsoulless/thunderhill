@@ -15,6 +15,7 @@ import socketio
 import eventlet
 import eventlet.wsgi
 import time
+import utm
 from PIL import Image
 from PIL import ImageOps
 from flask import Flask, render_template
@@ -246,9 +247,12 @@ for i in range(len(UTM_path)):
 diffx = 0 # -989.70
 diffy = 0 # -58.984
 
+
 def toGPS(simx, simy):
     projx, projy = simx+diffx, simy + diffy
     lon, lat = mt(projx, projy,inverse=True)
+    lon += -0.006893478893516658
+    lat += -0.0013556108003527356
     return [lon, lat]
 
 # sim to UTM offset in meters
@@ -258,6 +262,15 @@ def toUTM(simx, simy):
     simx = 1241.2 + (1241.2 - simx)*1.01
     simy = 860.9 + (860.9 - simy)*1.05
     return [simx+offsetx, simy+offsety]
+
+def UTMtoLatLon(utmx, utmy):
+    lat, lon = utm.to_latlon(utmx, utmy, 10, 'T')
+    return lon, lat
+
+def LatLontoUTM(lon, lat):
+    utmx, utmy, zone, zoneletter = utm.from_latlon(lat, lon)
+    return [utmx, utmy]
+
 
 # CTE and distance calculations
 def sqr(x):
@@ -367,10 +380,14 @@ def telemetry(sid, data):
     simx, simy, simz = data['position'].split(':')
     simx = float(simx)
     simy = float(simy)
-    print("GPS lat/lon: ", toGPS(simx, simy))
+    lon0, lat0 = toGPS(simx, simy)
+    print("GPS lat/lon: ", lat0, lon0)
     UTMp = toUTM(simx, simy)
-    CTE, Distance2NextWaypoint, LapDistance = NearestWayPointCTEandDistance(UTMp)
     print("GPS UTM: ", UTMp)
+    lon1, lat1 = UTMtoLatLon(UTMp[0], UTMp[1])
+    print("GPS lat/lon diff: ", lat1-lat0, lon1-lon0)
+
+    CTE, Distance2NextWaypoint, LapDistance = NearestWayPointCTEandDistance(UTMp)
     print("Current waypoint", k, "CTE in meters", CTE, "Lap Distance", LapDistance, "distance to next waypoint: ", Distance2NextWaypoint)
 
     waypoint4model = (2.0*(LapDistance/total_lap_distance))-1.0
