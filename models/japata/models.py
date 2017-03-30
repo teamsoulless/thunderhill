@@ -1,50 +1,50 @@
-from keras.models import Sequential
+import keras
+from keras.models import Model, Sequential
 from keras.layers.core import Dense, Dropout, Flatten, Lambda
-from keras.layers.normalization import BatchNormalization
 from keras.layers.pooling import MaxPooling2D, AveragePooling2D
-from keras.layers.convolutional import Convolution2D, SeparableConv2D
+from keras.layers.convolutional import Conv2D, SeparableConv2D
 from keras.regularizers import l2
-from keras.layers import Activation
+from keras.layers import Activation, Input
 from keras.layers.advanced_activations import ELU, PReLU
 
-from batch_renorm import BatchRenormalization
+# from batch_renorm import BatchRenormalization
 
 
 def nvidia_with_bn_and_dropout(params):
     model = Sequential([
         Lambda(lambda x: x / 255. - 0.5, input_shape=(66, 200, 3)),
 
-        Convolution2D(3, 1, 1, border_mode='valid'),
+        Conv2D(3, (1, 1), border_mode='valid'),
 
         # 66x200x3
-        Convolution2D(24, 5, 5, init='he_normal'),
-        BatchRenormalization(),
+        Conv2D(24, (5, 5), init='he_normal'),
+        # BatchRenormalization(),
         Activation('elu'),
         MaxPooling2D(),
 
         # 31x98x24
-        Convolution2D(36, 5, 5, init='he_normal'),
-        BatchRenormalization(),
+        Conv2D(36, (5, 5), init='he_normal'),
+        # BatchRenormalization(),
         Activation('elu'),
         MaxPooling2D(border_mode='same'),
 
         # 14x47x36
-        Convolution2D(48, 5, 5, init='he_normal'),
-        BatchRenormalization(),
+        Conv2D(48, (5, 5), init='he_normal'),
+        # BatchRenormalization(),
         Activation('elu'),
         # Dropout(params.keep_prob),
         MaxPooling2D(border_mode='same'),
 
         # 5x22x48
-        Convolution2D(64, 3, 3, init='he_normal'),
+        Conv2D(64, (3, 3), init='he_normal'),
         Dropout(params.keep_prob),
-        BatchRenormalization(),
+        # BatchRenormalization(),
         Activation('elu'),
 
         # 3x20x64
-        Convolution2D(64, 3, 3, init='he_normal'),
+        Conv2D(64, (3, 3), init='he_normal'),
         Dropout(params.keep_prob),
-        BatchRenormalization(),
+        # BatchRenormalization(),
         Activation('elu'),
 
         # 1x18x64
@@ -87,6 +87,41 @@ def cg23(params):
         Dense(params.output_dims)
     ])
     return model
+
+
+def dev(params):
+    img_input = Input(shape=(160, 320, 3), name='img_input')
+    x = Conv2D(3, 1)(img_input)
+    # 160x320x3
+    x = SeparableConv2D(24, 8, depth_multiplier=6, strides=4, activation='elu')(x)
+    # 78x158x24
+    x = Conv2D(36, 5, padding='valid', strides=2, activation='elu')(x)
+    # 37x77x36
+    x = Conv2D(48, 5, padding='valid', strides=2, activation='elu')(x)
+    # 16x36x48
+    x = Conv2D(64, 3, padding='valid', activation='elu')(x)
+    # 7x17x64
+    x = Conv2D(64, 3, padding='valid', activation='elu')(x)
+    # 3x13x64
+    x = Conv2D(64, 3, padding='valid', activation='elu')(x)
+    x = Dropout(params.keep_prob)(x)
+    # 1x11x64
+    x = Flatten()(x)
+
+    other_input = Input(shape=(8,), name='other_input')
+    xx = Dense(50, activation='elu')(other_input)
+    xx = Dense(100, activation='elu')(xx)
+    x = keras.layers.concatenate([x, xx])
+
+    x = Dense(256, activation='elu')(x)
+    x = Dense(64, activation='elu')(x)
+    x = Dense(10, activation='elu')(x)
+    predictions = Dense(params.output_dims)(x)
+
+    model = Model(inputs=[img_input, other_input], outputs=predictions)
+    return model
+
+
 
 
 def evolutionary_feature_extractor():
