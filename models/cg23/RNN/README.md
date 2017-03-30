@@ -6,6 +6,16 @@ SRC_LSTM_rebuild.py – Rebuild the graph for test time with single image inputs
 
 drive.py – Use the stored states to predict steering/throttle/brake from single images
 
+The weights for this model are located here: https://drive.google.com/drive/folders/0B2jsfsxBoDxZdXFsdktuX0gxaFU
+
+To run this model you will use 
+
+```
+python drive.py --metagraph_file checkpoint-sdc-ch2.meta --checkpoint_dir checkpoint
+```
+ 
+and tensorflow version is 0.12.1
+
 These scripts have been setup to train and test the 1st place stateful RNN/LSTM Solution from Udacity's Challenge #2 with simulator/polysync data. They were originally written by Ilia Edrenkin and have been modified for the SRC team. The original model was setup to minimize the RSME on the test set (toy problem) and many adjustments were required to get the model to drive in the simulator.
 
 From Ilia...
