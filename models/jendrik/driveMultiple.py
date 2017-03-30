@@ -66,17 +66,15 @@ def telemetry(sid, data):
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image).astype(np.uint8)
         t = time.time()
-        steering_angle, throttle, breakVal = model.predict([preprocessImage(image_array)[None,:,:,:], 
+        steering_angle, throttle = model.predict([preprocessImage(image_array)[None,:,:,:], 
                                                             xVec[None,:]])#,np.array(telemetry.angles)[None,:]])
-        print(time.time() - t, steering_angle, throttle, breakVal)
+        print(time.time() - t, steering_angle, throttle)
         steering_angle = float(steering_angle)
         throttle = float(throttle)
-        #if float(speed) > 50:
-        #    throttle -=.3
-        breakVal = float(breakVal)
+        if float(speed) > 50:
+            throttle -=.3
         telemetry.angles.pop(0)
         telemetry.angles.append(steering_angle)
-        throttle = throttle - breakVal
         print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
