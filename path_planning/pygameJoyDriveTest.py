@@ -33,7 +33,7 @@ mt = Basemap(llcrnrlon=ll[0],llcrnrlat=ll[1],urcrnrlon=ur[0], urcrnrlat=ur[1],
 
 # Generated from: nodejs GPSLatLong2UTM.js 
 UTM_path = [
-    [556819.8483692978, 4376630.092385895],
+    [556819.823369298, 4376630.074165889],
     [556805.650790522, 4376742.486302503],
     [556802.1238310878, 4376752.327299194],
     [556797.004905037, 4376758.949030364],
@@ -232,6 +232,7 @@ UTM_path = [
 ]
 
 #calculate new way points and initialize distance between way points
+total_lap_distance = 0.0
 for i in range(len(UTM_path)):
     delta_x = UTM_path[i][0] - UTM_path[(i+1)%len(UTM_path)][0]
     delta_y = UTM_path[i][1] - UTM_path[(i+1)%len(UTM_path)][1]
@@ -239,11 +240,8 @@ for i in range(len(UTM_path)):
     if distance_to_next_waypoint == 0.0:
        print(i, "entry has length == 0.0 to last waypoint")
     UTM_path[i].append(distance_to_next_waypoint)
-    if delta_x != 0.0:
-        slope = delta_y/delta_x
-    else:
-       print(i, "division == 0.0 to last waypoint")
-    UTM_path[i].append(slope)
+    UTM_path[i].append(total_lap_distance)
+    total_lap_distance += distance_to_next_waypoint
 
 diffx = 0 # -989.70
 diffy = 0 # -58.984
@@ -257,7 +255,7 @@ def toGPS(simx, simy):
 offsetx = 555578.648369298
 offsety = 4375769.19238589
 def toUTM(simx, simy):
-    simx = 1241.2 + (1241.2 - simx)
+    simx = 1241.2 + (1241.2 - simx)*1.01
     simy = 860.9 + (860.9 - simy)*1.05
     return [simx+offsetx, simy+offsety]
 
@@ -324,9 +322,13 @@ def NearestWayPointCTEandDistance(p):
     # calculate CTE and distance to next waypoint
     distance_to_next_waypoint = np.sqrt(dist2(UTM_path[(k+1)%len(UTM_path)], p))
     CTE = sideOfPoint(k, p)*distToPathSegment(k, p)
+
+    # calculate current lap distance
+    lap_distance = UTM_path[k][3]
+    lap_distance += np.sqrt(dist2(UTM_path[k], midp))
     
     # return results
-    return CTE, distance_to_next_waypoint
+    return CTE, distance_to_next_waypoint, lap_distance
 
 ### initialize pygame and joystick
 pygame.init()
@@ -367,8 +369,13 @@ def telemetry(sid, data):
     simy = float(simy)
     print("GPS lat/lon: ", toGPS(simx, simy))
     UTMp = toUTM(simx, simy)
+    CTE, Distance2NextWaypoint, LapDistance = NearestWayPointCTEandDistance(UTMp)
     print("GPS UTM: ", UTMp)
-    print("Current waypoint", k, "CTE and distance to next waypoint: ", NearestWayPointCTEandDistance(UTMp))
+    print("Current waypoint", k, "CTE in meters", CTE, "Lap Distance", LapDistance, "distance to next waypoint: ", Distance2NextWaypoint)
+
+    waypoint4model = (2.0*(LapDistance/total_lap_distance))-1.0
+    CTE4model = CTE/5.0
+    print("Current waypoint model value", waypoint4model, "CTE model value", CTE4model)
 
     ### Maybe use recording flag to start image data collection?
     recording = False
