@@ -70,7 +70,6 @@ def timeit(f):
     return _f
 
 
-@decorator
 def staticVars(**kwargs):
     """This function allows C-Like static variables definitions"""
     def _f(f):
