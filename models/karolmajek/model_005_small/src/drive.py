@@ -15,6 +15,8 @@ from io import BytesIO
 from keras.models import model_from_json
 from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array
 
+import keras.backend.tensorflow_backend as K
+
 # Fix error with Keras and TensorFlow
 import tensorflow as tf
 import cv2
@@ -54,8 +56,8 @@ class SimplePIController:
         return self.Kp * self.error + self.Ki * self.integral
 
 controller = SimplePIController(0.1, 0.01)
-set_speed = 70
-# set_speed = 50
+# set_speed = 70
+set_speed = 50
 # set_speed = 35
 controller.set_desired(set_speed)
 count=0
@@ -124,15 +126,15 @@ if __name__ == '__main__':
     parser.add_argument('model', type=str, help='Path to model definition json.')
     parser.add_argument('weights', type=str, help='Path to model weights.')
     args = parser.parse_args()
-    with open(args.model, 'r') as jfile:
-        # NOTE: if you saved the file by calling json.dump(model.to_json(), ...)
-        # then you will have to call:
-        #
-        #   model = model_from_json(json.loads(jfile.read()))\
-        #
-        # instead.
-        model = model_from_json(jfile.read())
-
+    with K.tf.device('/gpu:1'):
+        with open(args.model, 'r') as jfile:
+            # NOTE: if you saved the file by calling json.dump(model.to_json(), ...)
+            # then you will have to call:
+            #
+            #   model = model_from_json(json.loads(jfile.read()))\
+            #
+            # instead.
+            model = model_from_json(jfile.read())
 
     model.compile("adam", "mse")
     weights_file = args.weights
