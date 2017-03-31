@@ -79,7 +79,7 @@ def createModel(learning_rate, dropout):
     speed_input = Input(shape=(8,), name='speed_input')
     xx = Dense(50)(speed_input)
     xx = ELU()(xx)
-    xx = Dense(100)(speed_input)
+    xx = Dense(100)(speed_input) # BUG by design
     xx = ELU()(xx)
     x = keras.layers.merge([x, xx], mode='concat', concat_axis=-1)
 
@@ -128,7 +128,7 @@ if __name__ == '__main__':
     import tensorflow as tf
     from keras.backend.tensorflow_backend import set_session
     config = tf.ConfigProto()
-    config.gpu_options.per_process_gpu_memory_fraction = 0.8
+    config.gpu_options.per_process_gpu_memory_fraction = 0.3
     set_session(tf.Session(config=config))
 
     # model = NvidiaModel(args.alpha, args.dropout)

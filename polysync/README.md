@@ -4,7 +4,7 @@
 2. [Download](http://docs.polysync.io/downloads/)
 3. [Install](http://docs.polysync.io/flows/getting-started/)
 4. Activate license (***only do this once or you will use multiple licenses!***): <br/>
- `polysync-license-tool -a b5b3-eb9e-6f3c-4ff9-b0e5-dd22-d90a-f308`
+ `polysync-license-tool -a 6c4e-aab9-d9b9-47ba-b507-9932-3b81-65df`
 5. Create a symlink to the libcanlib.so <br/>
 `sudo ln -s /usr/local/polysync/vendor/lib/libcanlib.so /usr/local/polysync/vendor/lib/libcanlib.so.1`
 
