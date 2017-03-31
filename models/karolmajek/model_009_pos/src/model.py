@@ -107,7 +107,7 @@ if __name__ == '__main__':
     print('Model: {}'.format(args.output))
     print('-------------')
 
-    args.output='logs/'+args.output+'_%d'%int(time.time())
+    args.output='logs/'+'%d_'%int(time.time()) + args.output
 
     if not os.path.exists(args.output):
         os.makedirs(args.output)
@@ -140,10 +140,10 @@ if __name__ == '__main__':
     board=TensorBoard(log_dir=args.output, histogram_freq=0, write_graph=True, write_images=True)
 
     history = model.fit_generator(
-        generate_thunderhill_batches(genTh(), args.batch),
+        generate_thunderhill_batches(genThDay1(), args.batch),
         nb_epoch=args.epoch,
         samples_per_epoch=50*args.batch,
-        validation_data=generate_thunderhill_batches(genTh(), args.batch),
+        validation_data=generate_thunderhill_batches(genThDay2(), args.batch),
         nb_val_samples=5*args.batch,
         callbacks=[checkpointer, logger, board]#, early_stop]
     )
