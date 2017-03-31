@@ -235,12 +235,12 @@ def RandomShift(img, steering, throttle):
     if np.random.uniform() < 0.5:
         return img, steering,throttle
     tx = np.random.randint(-5,5)
-    steering += tx * 30 * 0.005
+    steering += tx * 6 * 0.005
     if np.abs(steering)>0.3:
         throttle=throttle*0.5
         if np.abs(steering)>0.6:
             throttle=0
-    return Shift(img, tx, np.random.randint(-50, 10)), steering, throttle
+    return Shift(img, tx, np.random.randint(-5, 10)), steering, throttle
 
 """
 Randomly flip the images
@@ -264,11 +264,11 @@ def RandomBrightness(img, steering):
     # if np.random.uniform() < 0.5:
     #     return img, steering
     # img[:, :, :] = img[:, :, :] * np.random.uniform()*2
-    return brigthness(img,-100+200*np.random.uniform()), steering
+    return brigthness(img,-100+300*np.random.uniform()), steering
 
 def speedToClass(speed):
     classes=[0]*8
-    cl=int(speed/10)
+    cl=int(speed/(10*35/80))
     if cl<0:
         cl=0
     if cl>7:

@@ -238,6 +238,10 @@ diffx = 0 # -989.70
 diffy = 0 # -58.984
 
 
+pi = 3.14159265358979
+def RadToDeg (rad):
+    return (rad / pi * 180.0)
+
 def toGPS(simx, simy):
     projx, projy = simx+diffx, simy + diffy
     lon, lat = mt(projx, projy,inverse=True)
@@ -305,19 +309,15 @@ def sideOfPoint(nk, p):
     return 1
 
 # find nearest waypoint and its CTE and distance to next waypoint
-k = 0
 def NearestWayPointCTEandDistance(p):
-    global k
     distance_to_waypoint = 1000.0
 
-    # initialize k
-    n = k
-    for i in range(10):
-        distance = distToPathSegment(k+i-5, p)
+    k=0
+    for i in range(len(UTM_path)):
+        distance = distToPathSegment(i, p)
         if distance < distance_to_waypoint:
             distance_to_waypoint = distance
-            n = k+i-5
-    k = n%len(UTM_path)
+            k=i
 
     # get closest midpoint
     midp = closestPathSegmentMidpoint(k, p)
@@ -344,12 +344,9 @@ def generate_thunderhill_batches(gen, batch_size):
         for img, steering_angle, throttle, brake, speed, longitude, latitude in gen:
             for img1, steering_angle1 in RandomFlip(img, steering_angle):
                 img1, steering_angle1 = RandomBrightness(img1, steering_angle1)
-                img1, steering_angle1, throttle1 = RandomShift(img1, steering_angle1,throttle)
                 img1 = Preproc(img1)
-                if steering_angle1>1:
-                    steering_angle1=1
-                if steering_angle1<-1:
-                    steering_angle1=-1
+                img1, steering_angle1, throttle1 = RandomShift(img1, steering_angle1,throttle)
+
 
                 brake1=brake
 
@@ -360,29 +357,56 @@ def generate_thunderhill_batches(gen, batch_size):
                     brake1=1
                     throttle1=0
 
-                speed_cl=np.array(speedToClass(speed))
+                if np.random.uniform() < 0.5:
+                    speed1 = speed * np.random.uniform()
+                else:
+                    speed1 = speed
 
-                if speed_cl[-2]==1 and steering_angle1!=0:
+                speed_cl=np.array(speedToClass(speed))
+                speed_cl1=np.array(speedToClass(speed1))
+
+                if speed1 < 20*0.44704:
+                    throttle1=1
+                if speed1 > 50*0.44704:
                     throttle1=0
-                if speed_cl[-1]==1 and steering_angle1!=0:
-                    brake1=1
+                if speed1 > 70*0.44704:
                     throttle1=0
+                    brake=1
+
+                if brake>0.7:
+                    throttle=0
+
+                # if speed_cl[-2]==1 and steering_angle1!=0:
+                #     throttle1=0
+                # if speed_cl[-1]==1 and steering_angle1!=0:
+                #     brake1=1
+                #     throttle1=0
+
+                batch_x.append(np.reshape(img1, (1, HEIGHT, WIDTH, DEPTH)))
+                batch_x2.append(speed_cl1)
+
+
+                UTMp = LatLontoUTM(RadToDeg(longitude), RadToDeg(latitude))
+                CTE, Distance2NextWaypoint, LapDistance = NearestWayPointCTEandDistance(UTMp)
+
+                CTE/=5.0
+                LapDistance=2*(LapDistance/total_lap_distance)-1
 
                 font = cv2.FONT_HERSHEY_SIMPLEX
                 if show_images:
-                    imgp = Preproc(img.copy())
-                    imgshow=(np.concatenate((imgp,img1),axis=0)+0.5)*0.5
-                    cv2.putText(imgshow,'%s'%(str(list(speed_cl))),(10,30), font, 0.4,(0,0,255),1,cv2.LINE_AA)
+                    imgp = Preproc(img.copy()[::-1,:,:])
+                    imgshow=(np.concatenate((imgp,img1[::-1,:,:]),axis=0)+0.5)*0.5
 
-                    cv2.putText(imgshow,'%.3f %.1f %.1f %.1f'%(steering_angle,throttle, brake,speed),(10,70), font, 0.4,(0,0,255),1,cv2.LINE_AA)
-                    cv2.putText(imgshow,'%.3f %.1f %.1f'%(steering_angle1,throttle1, brake1),(10,150), font, 0.4,(0,0,255),1,cv2.LINE_AA)
+                    imgshow = cv2.resize(imgshow,(0,0),fx=2,fy=2)
+                    cv2.putText(imgshow,'%s'%(str(list(speed_cl))),(10,30), font, 0.8,(0,0,255),2,cv2.LINE_AA)
+                    cv2.putText(imgshow,'%s'%(str(list(speed_cl1))),(10,190), font, 0.8,(0,0,255),2,cv2.LINE_AA)
+                    cv2.putText(imgshow,'%.3f %.1f %.1f %.1f'%(steering_angle,throttle, brake,speed),(10,140), font, 0.8,(0,0,255),2,cv2.LINE_AA)
+                    cv2.putText(imgshow,'%.3f %.1f %.1f %.1f'%(steering_angle1,throttle1, brake1,speed1),(10,300), font, 0.8,(0,0,255),2,cv2.LINE_AA)
+
+                    cv2.putText(imgshow,'%.5f %.5f'%(longitude, latitude),(10,110), font, 0.8,(0,0,255),2,cv2.LINE_AA)
+                    cv2.putText(imgshow,'%.3f %.3f'%(CTE,LapDistance),(10,250), font, 0.8,(0,0,255),2,cv2.LINE_AA)
                     cv2.imshow('img',imgshow)
                     cv2.waitKey(0)
-                batch_x.append(np.reshape(img1, (1, HEIGHT, WIDTH, DEPTH)))
-                batch_x2.append(speed_cl)
-
-                UTMp = toUTM(longitude, latitude)
-                CTE, Distance2NextWaypoint, LapDistance = NearestWayPointCTEandDistance(UTMp)
 
                 batch_x3.append((CTE, LapDistance))
 
@@ -531,19 +555,48 @@ def genAll(folder):
         steering_angle = row[1]
         yield img,steering_angle/2.0,row[2],row[3],row[4]
 
-thunderhill_data_dir='/home/karol/projects/udacity/Racing/thunderhill-day1-data/*'
-thunderhill_datasets=glob(thunderhill_data_dir)
+thunderhill_data_dir_1='/home/karol/projects/udacity/Racing/thunderhill-day1-data/*'
+thunderhill_datasets_1=glob(thunderhill_data_dir_1)
+thunderhill_data_dir_2='/home/karol/projects/udacity/Racing/thunderhill-day2-data/*'
+thunderhill_datasets_2=glob(thunderhill_data_dir_2)
 # ,path,heading,longitude,latitude,quarternion0,quarternion1,quarternion2,quarternion3,vel0,vel1,vel2,acc0,acc1,acc2,steering,throttle,brake,speed,accel
-def genTh():
+def genThDay1():
     while True:
-        for dataset in thunderhill_datasets:
-            with open(dataset + '/output_accel.txt', 'r') as csvfile:
+        for dataset in thunderhill_datasets_1:
+            with open(dataset + '/output_processed.txt', 'r') as csvfile:
                 data_tmp = shuffle(list(csv.reader(csvfile, delimiter=','))[1:])
                 dd='/'.join(dataset.split('/'))
                 for row in data_tmp:
                     if row[-1] == '':
                         continue
-                    row=row[1:]
+                    # row=row[1:]
+                    img = cv2.imread(dataset + '/' + row[0]) # image
+                    steering_angle = float(row[14])
+                    throttle = float(row[-1])
+                    brake = float(row[16])
+                    speed = float(row[17])
+                    longtitude = float(row[2])
+                    latitude = float(row[3])
+
+                    if throttle<-0.1:
+                        throttle=-0.1
+                    throttle=throttle+0.1
+                    throttle=throttle/0.3
+                    if throttle>1:
+                        throttle=1
+
+                    yield img,steering_angle, throttle, brake, speed, longtitude, latitude
+                    break
+def genThDay2():
+    while True:
+        for dataset in thunderhill_datasets_2:
+            with open(dataset + '/output_processed.txt', 'r') as csvfile:
+                data_tmp = shuffle(list(csv.reader(csvfile, delimiter=','))[1:])
+                dd='/'.join(dataset.split('/'))
+                for row in data_tmp:
+                    if row[-1] == '':
+                        continue
+                    # row=row[1:]
                     img = cv2.imread(dataset + '/' + row[0]) # image
                     steering_angle = float(row[14])
                     throttle = float(row[-1])
