@@ -13,10 +13,9 @@ from keras.layers import Input, Dense, GlobalAveragePooling2D, Flatten,Lambda,EL
 import keras
 from keras.models import Model, Sequential
 from keras.regularizers import l2
-from keras import backend as K
 import argparse
 import os
-from loader import *#generate_thunderhill_batches, getDataFromFolder, genSim001, genSim002, genSession5,genPolysync0,genPolysync2,genAll
+from loader import *
 from config import *
 import time
 
@@ -50,18 +49,14 @@ def createModel(learning_rate, dropout):
 
 
     speed_input = Input(shape=(8,), name='speed_input')
-    xx = Dense(50)(speed_input)
+    xx = Dense(100)(speed_input)
     xx = ELU()(xx)
-    xx = Dense(100)(xx)
+    xx = Dense(50)(xx)
+    xx = ELU()(xx)
+    xx = Dense(10)(xx)
     xx = ELU()(xx)
 
-    position_cte = Input(shape=(2,), name='position_cte')
-    xxx = Dense(50)(position_cte)
-    xxx = ELU()(xxx)
-    xxx = Dense(100)(xxx)
-    xxx = ELU()(xxx)
-
-    x = keras.layers.merge([x, xx, xxx], mode='concat', concat_axis=-1)
+    x = keras.layers.merge([x, xx], mode='concat', concat_axis=-1)
 
     x = Dense(100)(x)
     x = ELU()(x)
@@ -75,18 +70,12 @@ def createModel(learning_rate, dropout):
     x = ELU()(x)
     predictions = Dense(3)(x)
 
-    model = Model(input=[img_input, speed_input, position_cte], output=predictions)
+    model = Model(input=[img_input, speed_input], output=predictions)
     model.compile(optimizer='adam', loss='mse')
     print(model.summary())
     return model
 
 if __name__ == '__main__':
-    # for g in genTh():
-    #     print(g)
-    #     img=g[0]
-    #     cv2.imshow('img',img)
-    #     cv2.waitKey(0)
-
     parser = argparse.ArgumentParser(description='Steering angle model trainer')
     parser.add_argument('--batch', type=int, default=BATCH_SIZE, help='Batch size.')
     parser.add_argument('--epoch', type=int, default=EPOCHS, help='Number of epochs.')
@@ -142,8 +131,8 @@ if __name__ == '__main__':
     history = model.fit_generator(
         generate_thunderhill_batches(genThDay1(), args.batch),
         nb_epoch=args.epoch,
-        samples_per_epoch=50*args.batch,
-        validation_data=generate_thunderhill_batches(genThDay2(), args.batch),
-        nb_val_samples=5*args.batch,
+        samples_per_epoch=20*args.batch,
+        validation_data=generate_thunderhill_batches(genThDay1(), args.batch),
+        nb_val_samples=1*args.batch,
         callbacks=[checkpointer, logger, board]#, early_stop]
     )

@@ -1,4 +1,4 @@
-BATCH_SIZE = 512
+BATCH_SIZE = 64
 EPOCHS = 1000
 FORMAT = '%(asctime)-15s %(clientip)s %(user)-8s %(message)s'
 # WIDTH = 66
