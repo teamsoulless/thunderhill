@@ -1,0 +1,3 @@
+/media/nadia/208C-683E/production_3003/RNN-chris/MainNode/CMakeFiles/rebuild_cache.dir
+/media/nadia/208C-683E/production_3003/RNN-chris/MainNode/CMakeFiles/edit_cache.dir
+/media/nadia/208C-683E/production_3003/RNN-chris/MainNode/CMakeFiles/MainNode.dir
