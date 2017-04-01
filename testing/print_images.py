@@ -1,135 +1,31 @@
-from MainNode.MainNode import MainNode
-from ctypes import *
-import array
 from PIL import Image
-from io import BytesIO
-import numpy as np
-from keras.models import load_model
-import h5py
-from keras import __version__ as keras_version
-import tensorflow as tf
-from keras import backend as K
-from Preprocess import *
+from glob import glob
 import cv2
-import time
-from data_buffer import DataBuffer
-import queue
-import threading
+import numpy as np
+import os
+import io
+from array import array
 
+fname='image.raw'
+file = open(fname, 'rb')
+raw_image = Image.frombytes('RGB', [960,480], file.read(), 'raw')
+raw_image.save('raw.bmp')
+img = np.array(raw_image)
+file.close()
+ 
+rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+cv2.imwrite(fname.replace('.raw','.jpeg'), rgb)
 
-f = h5py.File("psyncModel.h5", mode='r')
-model_version = f.attrs.get('keras_version')
-keras_version = str(keras_version).encode('utf8')
+image_array = cv2.resize(img, (320, 160))
+cv2.imwrite('image_resized.jpg',image_array) 
 
-if model_version != keras_version:
-	print('You are using Keras version ', keras_version, ', but the model was built using ', model_version)
+hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+cv2.imwrite('image_hvs.jpg', hsv)
 
+hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+cv2.imwrite('image_hls.jpg', hls)
 
-def customLoss(y_true, y_pred):
-	return K.mean(K.square(y_pred - y_true), axis=-1)
-
-model = load_model("psyncModel.h5", custom_objects={'customLoss':customLoss})
-graph = tf.get_default_graph()
-
-data_buffer = DataBuffer()
-res_queue = queue.Queue(maxsize=1)
-
-idxs = [0, 1, 2]
-means = [-2.135234308696, 0.690051203865, 62.68238949]
-stds = [0.000022089013, 0.000045442627, 13.48539298]
-
-debug = False
-
-
-def normalize_vector(xVec):
-	for i, mean, std in zip(idxs, means, stds):
-		xVec[i] -= mean
-		xVec[i] /= std
-	return xVec
-
-
-def copyImage(byte_array, imageSize):
-	if imageSize > 8:
-		resize(byte_array, imageSize)
-		image = []
-		for i in range(imageSize):
-			image.append(byte_array[i])
-		return array.array('B', image).tostring()
-	return byte_array
-
-
-def imageReceived(imageSize, rawImage, speed, lat, lon):
-	print("image received with: ", speed, lat, lon)
-	jpegImage = copyImage(rawImage, imageSize)
-	data_buffer.add_item((jpegImage, speed, lat, lon))
-	
-Node = MainNode(imageReceived)
-
-def make_prediction():
-	global graph
-	print('make prediction')
-	while True:
-		with graph.as_default():
-			item = data_buffer.get_item_for_processing()
-			if item and len(item) == 4:
-				jpeg_image = item[0]
-				speed = item[1]
-				lat = item[2]
-				lon = item[3]
-				img = np.array(Image.frombytes('RGB', [960,480], jpeg_image, 'raw'))
-				cv2.imwrite('image.jpg',img)
-				image_array = cv2.resize(img, (320, 160))
-				cv2.imwrite('image_resized.jpg',image_array)
-
-				hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-				cv2.imwrite('image_hvs.jpg', hsv)
-
-				hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
-				cv2.imwrite('image_hls.jpg', hls)
-
-				img_read = cv2.imread('image.jpg')
-				cv2.imshow('label', img_read)
-
-
-				break
-				
-				#steering_angle, move_value = model.predict([preprocessImage(img)[None,:,:,:], norm_xVec[None,:]])
-				if res_queue.full(): # maintain a single most recent prediction in the queue
-					res_queue.get(False)
-				throttle, brake_value = 0, 0
-				if (move_value[0][0] > 0):
-					throttle = move_value[0][0]
-				else:
-					brake_value = abs(move_value[0][0])
-					print("putting in the queue: ", steering_angle[0][0], throttle, brake_value)
-					res_queue.put((steering_angle[0][0], throttle, brake_value))
-
-
-def sendValues():
-	steer = 0
-	throttle = 0
-	brake = 0
-	while 1:
-		try:
-			prediction = res_queue.get(block=False)
-			steer = c_float(prediction[0])
-			throttle = c_float(prediction[1])
-			brake = c_float(prediction[2])
-			print("got values: ", steer, throttle, brake)
-		except queue.Empty:
-			pass
-		Node.steerCommand(steer)
-		Node.throttleCommand(throttle)
-		Node.brakeCommand(brake)
-		time.sleep(0.01)
-
-thread = threading.Thread(target=make_prediction, args=())
-thread.daemon = True
-thread.start()
-thread2 = threading.Thread(target=sendValues, args=())
-thread2.daemon = True
-thread2.start()
-
-
-
-Node.connectPolySync()
+img_read = cv2.imread('image.jpeg', cv2.COLOR_BGR2RGB)
+img_raw = cv2.imread('raw.bmp')
+new_image = np.abs(img_read - img_raw)
+cv2.imwrite('negative.jpg', new_image)
