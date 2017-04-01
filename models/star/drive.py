@@ -70,25 +70,33 @@ def telemetry(sid, data):
 
     image = Image.open(BytesIO(base64.b64decode(imgString)))
     image_array = np.asarray(image)
+    print(image_array.shape)
 
     # verify sizing is correctly set.
     print("original size: ", image_array.shape)
 
     # resizing image here, you may or may not want to do this...
-    image_array = cv2.resize(image_array, (img_cols, img_rows), interpolation=cv2.INTER_AREA)
+    #image_array = cv2.resize(image_array, (img_cols, img_rows), interpolation=cv2.INTER_AREA)
+    image_array = cv2.resize(image_array, (240, 120), interpolation=cv2.INTER_AREA)
     print("resized size: ", image_array.shape)
 
     # set up the tensor for the model.
-    transformed_image_array = image_array[None, :, :, :]
-
+    transformed_image_array = image_array[None, :, :, :] #Not working
+    #transformed_image_array = np.asarray(image_array).reshape(1, img_rows, img_cols, 3) #Not working
+    
     # This model currently assumes that the features of the model are just the images. Feel free to change this.
     #steering_angle, throttle = float(model.predict(transformed_image_array, batch_size=1))
     # The driving model currently just outputs a constant throttle. Feel free to edit this.
+    #print("image array-------------------------", transformed_image_array.shape)
     #throttle = 0.8
+    print("test1")
     predictions = model.predict(transformed_image_array, batch_size=1)
+    print("test2")
+    print(predictions)
     steering_angle = float(predictions[0][0])
     #steering_angle = float(predictions)
     throttle = float(predictions[0][1])
+
 
     print(steering_angle, throttle)
     send_control(steering_angle, throttle)
