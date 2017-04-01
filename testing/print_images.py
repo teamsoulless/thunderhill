@@ -28,6 +28,7 @@ cv2.imwrite('image2.jpg',img_read)
 cv2.imwrite('image3.jpg',img)
 
 image_array = cv2.resize(img, (320, 160))
+image_array_rgb = image_array[..., (2, 1, 0)]
 cv2.imwrite('image_resized.jpg',image_array) 
 
 hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
