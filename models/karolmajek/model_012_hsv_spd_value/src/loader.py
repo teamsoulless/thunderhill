@@ -40,8 +40,8 @@ def generate_thunderhill_batches(gen, batch_size):
                 else:
                     speed1 = speed
 
-                speed_cl=np.array(speedToClass(speed))
-                speed_cl1=np.array(speedToClass(speed1))
+                # speed_cl=np.array(speedToClass(speed))
+                # speed_cl1=np.array(speedToClass(speed1))
 
                 if speed1 < 20*0.44704:
                     throttle1=1
@@ -59,10 +59,12 @@ def generate_thunderhill_batches(gen, batch_size):
                 # if speed_cl[-1]==1 and steering_angle1!=0:
                 #     brake1=1
                 #     throttle1=0
+                img1 = cv2.cvtColor(img1, cv2.COLOR_RGB2HSV)[:,:,:1]
 
                 batch_x.append(np.reshape(img1, (1, HEIGHT, WIDTH, DEPTH)))
-                batch_x2.append(speed_cl1)
 
+                spd1 = speed1/40 - 0.5
+                batch_x2.append(spd1)
 
                 font = cv2.FONT_HERSHEY_SIMPLEX
                 if show_images:
@@ -70,8 +72,8 @@ def generate_thunderhill_batches(gen, batch_size):
                     imgshow=(np.concatenate((imgp,img1[::-1,:,:]),axis=0)+0.5)*0.5
 
                     imgshow = cv2.resize(imgshow,(0,0),fx=2,fy=2)
-                    cv2.putText(imgshow,'%s'%(str(list(speed_cl))),(10,30), font, 0.8,(0,0,255),2,cv2.LINE_AA)
-                    cv2.putText(imgshow,'%s'%(str(list(speed_cl1))),(10,190), font, 0.8,(0,0,255),2,cv2.LINE_AA)
+                    # cv2.putText(imgshow,'%s'%(str(list(speed_cl))),(10,30), font, 0.8,(0,0,255),2,cv2.LINE_AA)
+                    # cv2.putText(imgshow,'%s'%(str(list(speed_cl1))),(10,190), font, 0.8,(0,0,255),2,cv2.LINE_AA)
                     cv2.putText(imgshow,'%.3f %.1f %.1f %.1f'%(steering_angle,throttle, brake,speed),(10,140), font, 0.8,(0,0,255),2,cv2.LINE_AA)
                     cv2.putText(imgshow,'%.3f %.1f %.1f %.1f'%(steering_angle1,throttle1, brake1,speed1),(10,300), font, 0.8,(0,0,255),2,cv2.LINE_AA)
 
@@ -174,4 +176,3 @@ def genThDay1_2():
 
                     yield img,steering_angle, throttle, brake, speed, longtitude, latitude
                     break
-

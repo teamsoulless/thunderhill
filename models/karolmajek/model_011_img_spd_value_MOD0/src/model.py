@@ -48,7 +48,7 @@ def createModel(learning_rate, dropout):
     x = Flatten()(x)
 
 
-    speed_input = Input(shape=(8,), name='speed_input')
+    speed_input = Input(shape=(1,), name='speed_input')
 
     x = keras.layers.merge([x, speed_input], mode='concat', concat_axis=-1)
 

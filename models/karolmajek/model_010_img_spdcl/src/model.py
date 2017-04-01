@@ -129,10 +129,10 @@ if __name__ == '__main__':
     board=TensorBoard(log_dir=args.output, histogram_freq=0, write_graph=True, write_images=True)
 
     history = model.fit_generator(
-        generate_thunderhill_batches(genThDay1(), args.batch),
+        generate_thunderhill_batches(genThDay1_2(), args.batch),
         nb_epoch=args.epoch,
         samples_per_epoch=20*args.batch,
-        validation_data=generate_thunderhill_batches(genThDay1(), args.batch),
+        validation_data=generate_thunderhill_batches(genThDay2(), args.batch),
         nb_val_samples=1*args.batch,
         callbacks=[checkpointer, logger, board]#, early_stop]
     )

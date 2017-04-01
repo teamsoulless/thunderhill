@@ -147,3 +147,31 @@ def genThDay2():
 
                     yield img,steering_angle, throttle, brake, speed, longtitude, latitude
                     break
+def genThDay1_2():
+    while True:
+        for dataset in thunderhill_datasets_1 + thunderhill_datasets_2:
+            with open(dataset + '/output_processed.txt', 'r') as csvfile:
+                data_tmp = shuffle(list(csv.reader(csvfile, delimiter=','))[1:])
+                dd='/'.join(dataset.split('/'))
+                for row in data_tmp:
+                    if row[-1] == '':
+                        continue
+                    # row=row[1:]
+                    img = cv2.imread(dataset + '/' + row[0]) # image
+                    steering_angle = float(row[14])
+                    throttle = float(row[15])
+                    brake = float(row[16])
+                    speed = float(row[17])
+                    longtitude = float(row[2])
+                    latitude = float(row[3])
+
+                    if throttle<-0.1:
+                        throttle=-0.1
+                    throttle=throttle+0.1
+                    throttle=throttle/0.3
+                    if throttle>1:
+                        throttle=1
+
+                    yield img,steering_angle, throttle, brake, speed, longtitude, latitude
+                    break
+

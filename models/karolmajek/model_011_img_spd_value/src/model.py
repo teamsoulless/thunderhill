@@ -48,9 +48,15 @@ def createModel(learning_rate, dropout):
     x = Flatten()(x)
 
 
-    speed_input = Input(shape=(8,), name='speed_input')
+    speed_input = Input(shape=(1,), name='speed_input')
+    xx = Dense(100)(speed_input)
+    xx = ELU()(xx)
+    xx = Dense(50)(xx)
+    xx = ELU()(xx)
+    xx = Dense(10)(xx)
+    xx = ELU()(xx)
 
-    x = keras.layers.merge([x, speed_input], mode='concat', concat_axis=-1)
+    x = keras.layers.merge([x, xx], mode='concat', concat_axis=-1)
 
     x = Dense(100)(x)
     x = ELU()(x)
