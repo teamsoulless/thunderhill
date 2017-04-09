@@ -49,8 +49,8 @@ def generateImagesFromPaths(data, batchSize, timeLength, inputShape, outputShape
     while 1:
         returnArr = np.zeros((batchSize, timeLength, inputShape[0], inputShape[1], inputShape[2]))
         vecArr = np.zeros((batchSize, timeLength, 6))
-        labels = np.zeros((batchSize, 1))
-        weights = np.zeros((batchSize))
+        labels = np.zeros((batchSize, timeLength, 1))
+        weights = np.zeros((batchSize, timeLength))
         for j in range(batchSize):
             start += timeLength
             start %=(len(data)-timeLength)
@@ -68,9 +68,9 @@ def generateImagesFromPaths(data, batchSize, timeLength, inputShape, outputShape
                 #    label[0] *= -1
                 #if(train):
                 #    image, label[0] = augmentImage(image, label[0])
-                labels[j,0] = label[0]
+                labels[j,i,0] = label[0]
                 returnArr[j,i] = image            
-                weights[j] = row['norm']
+                weights[j,i] = row['norm']
                 xVector = np.array([val + np.random.rand()*0.02 - 0.01 for val in xVector])
                 vecArr[j,i] = xVector
                 #plt.imshow(image)
@@ -113,7 +113,7 @@ def retrieveVectors(vecString):
         
 
 def main():
-    img = mpimg.imread('/home/jendrik/git/thunderhill_data/dataset_sim_001_km_320x160/IMG/center_2017_03_07_07_21_54_311.jpg')
+    img = mpimg.imread('/home/jjordening/git/thunderhill_data/dataset_sim_001_km_320x160/IMG/center_2017_03_07_07_21_54_311.jpg')
     h, w = img.shape[:2]
     src = np.float32([[w/2 - 57, h/2], [w/2 + 57, h/2], [w+140,h], [-140,h]])
     dst = np.float32([[w/4,0], [w*3/4,0], [w*3/4,h], [w/4,h]])
@@ -126,19 +126,19 @@ def main():
     #showSamplesCompared(img, transform, '', '', '')
     plt.xkcd()
     np.random.seed(0)
-    #data = pd.read_csv('/home/jendrik/git/thunderhill_data/dataset_sim_000_km_few_laps/driving_log.csv', 
+    #data = pd.read_csv('/home/jjordening/git/thunderhill_data/dataset_sim_000_km_few_laps/driving_log.csv', 
     #                   header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
     #data['positionX'], data['positionY'], data['positionZ'] = data['position'].apply(retrieveVectors)
     #data['orientationX'], data['orientationY'], data['orientationZ'] = data['orientation'].apply(retrieveVectors)
-    #data['center'] = '/home/jendrik/git/thunderhill_data/dataset_sim_000_km_few_laps/'+data['center'].apply(lambda x: x.strip())
-    data1 = pd.read_csv('/home/jendrik/git/thunderhill_data/dataset_sim_001_km_320x160/driving_log.csv', 
+    #data['center'] = '/home/jjordening/git/thunderhill_data/dataset_sim_000_km_few_laps/'+data['center'].apply(lambda x: x.strip())
+    data1 = pd.read_csv('/home/jjordening/git/thunderhill_data/dataset_sim_001_km_320x160/driving_log.csv', 
                        header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
-    data1['center'] = '/home/jendrik/git/thunderhill_data/dataset_sim_001_km_320x160/'+data1['center'].apply(lambda x: x.strip())
+    data1['center'] = '/home/jjordening/git/thunderhill_data/dataset_sim_001_km_320x160/'+data1['center'].apply(lambda x: x.strip())
     data1[['positionX','positionY','positionZ']] = data1['position'].apply(retrieveVectors)
     data1[['orientationX','orientationY','orientationZ']] = data1['orientation'].apply(retrieveVectors)
-    data2 = pd.read_csv('/home/jendrik/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/driving_log.csv', 
+    data2 = pd.read_csv('/home/jjordening/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/driving_log.csv', 
                        header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
-    data2['center'] = '/home/jendrik/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/'+data2['center'].apply(lambda x: x.strip())
+    data2['center'] = '/home/jjordening/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/'+data2['center'].apply(lambda x: x.strip())
     data2[['positionX','positionY','positionZ']] = data2['position'].apply(retrieveVectors)
     data2[['orientationX','orientationY','orientationZ']] = data2['orientation'].apply(retrieveVectors)
     #data['right'] = '../simulator/data/data/'+data['right'].apply(lambda x: x.strip())
@@ -190,9 +190,9 @@ def main():
     imShape = preprocessImage(mpimg.imread(dataTrain['center'].iloc[0])).shape
     print(imShape)
     
-    timeLength = 16
+    timeLength = 8
     batchSize = 1
-    epochBatchSize = 1024
+    epochBatchSize = 2048
     
     trainGenerator = generateImagesFromPaths(dataTrain, batchSize, timeLength, imShape, [3], transform, angles, images, True)
     t = time.time()
@@ -204,6 +204,9 @@ def main():
     t = time.time()
     valGenerator.__next__()
     print("Time to build validation batch: ", time.time()-t)
+    stopCallback = EarlyStopping(monitor='val_loss', patience = 5, min_delta = 0.)
+    checkCallback = ModelCheckpoint('model.ckpt', monitor='val_loss', save_best_only=True)
+    visCallback = TensorBoard(log_dir = './logs')
     model = load_model('initModel.h5', custom_objects={'customLoss':customLoss})
     prevWeights = []
     for layer in model.layers:
@@ -239,28 +242,28 @@ def main():
     xOut = TimeDistributed(Flatten())(xC)
     del prevWeights
 
-    xOut = LSTM(1024)(xOut)
+    xOut = LSTM(1024, return_sequences=True)(xOut)
         
-    xOut = Dense(100)(xOut)
-    xOut = BatchNormalization()(xOut)
+    xOut = TimeDistributed(Dense(100))(xOut)
+    xOut = TimeDistributed(BatchNormalization())(xOut)
     xOut = Activation('elu')(xOut)
-    xOut = Dense(50)(xOut)
-    xOut = BatchNormalization()(xOut)
+    xOut = TimeDistributed(Dense(50))(xOut)
+    xOut = TimeDistributed(BatchNormalization())(xOut)
     xOut = Activation('elu')(xOut)
     xOut = Dropout(.3)(xOut)
-    xOut = Dense(10)(xOut)
-    xOut = BatchNormalization()(xOut)
+    xOut = TimeDistributed(Dense(10))(xOut)
+    xOut = TimeDistributed(BatchNormalization())(xOut)
     xOut = Activation('elu')(xOut)
-    xOut = Dense(1, activation='sigmoid')(xOut)
+    xOut = TimeDistributed(Dense(1, activation='sigmoid'))(xOut)
     xOut = Lambda(lambda x: x*2-1, name = 'output')(xOut)
     
     print(xOut.get_shape())
     
     endModel = Model((inpC), xOut)
-    endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'])
+    endModel.compile(optimizer=Adam(lr=1e-4), loss=customLoss, metrics=['mse', 'accuracy'],sample_weight_mode='temporal')
     valErrorComp = 2
     counter = 0
-    for i in range(100):
+    for i in range(20):
         print("Epoch: ", i)
         trainError = 0
         for j in range(epochBatchSize//2):
@@ -278,13 +281,13 @@ def main():
         for j in range(len(dataVal)//5):
             x, y, weight = valGenerator.__next__()
             valError += endModel.test_on_batch(x, y, weight)[0]
-            if j%256==0: print(j)
+            #if j%256==0: print(j)
         endModel.reset_states()
         for j in range(len(dataVal)//5):
             x, y, weight = valGenerator.__next__()
             valError += endModel.test_on_batch(mirrorImage(x), -1.*y, weight)[0]
-            if j%256==0: print(j)
-        valError/=len(dataVal)//5
+            #if j%256==0: print(j)
+        valError/=epochBatchSize
         print("Validation Error", valError)
         endModel.reset_states()
         counter += 1
