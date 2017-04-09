@@ -25,7 +25,7 @@ import threading
 logger = mp.log_to_stderr()
 
 LOADMODEL = False
-ANGLESFED = 5
+ANGLESFED = 1
 
 
 flags = tf.app.flags
@@ -113,7 +113,7 @@ def retrieveVectors(vecString):
         
 
 def main():
-    img = mpimg.imread('/home/jendrik/git/thunderhill_data/dataset_sim_001_km_320x160/IMG/center_2017_03_07_07_21_54_311.jpg')
+    img = mpimg.imread('/home/jjordening/git/thunderhill_data/dataset_sim_001_km_320x160/IMG/center_2017_03_07_07_21_54_311.jpg')
     h, w = img.shape[:2]
     src = np.float32([[w/2 - 57, h/2], [w/2 + 57, h/2], [w+140,h], [-140,h]])
     dst = np.float32([[w/4,0], [w*3/4,0], [w*3/4,h], [w/4,h]])
@@ -126,19 +126,19 @@ def main():
     #showSamplesCompared(img, transform, '', '', '')
     plt.xkcd()
     np.random.seed(0)
-    #data = pd.read_csv('/home/jendrik/git/thunderhill_data/dataset_sim_000_km_few_laps/driving_log.csv', 
+    #data = pd.read_csv('/home/jjordening/git/thunderhill_data/dataset_sim_000_km_few_laps/driving_log.csv', 
     #                   header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
     #data['positionX'], data['positionY'], data['positionZ'] = data['position'].apply(retrieveVectors)
     #data['orientationX'], data['orientationY'], data['orientationZ'] = data['orientation'].apply(retrieveVectors)
-    #data['center'] = '/home/jendrik/git/thunderhill_data/dataset_sim_000_km_few_laps/'+data['center'].apply(lambda x: x.strip())
-    data1 = pd.read_csv('/home/jendrik/git/thunderhill_data/dataset_sim_001_km_320x160/driving_log.csv', 
+    #data['center'] = '/home/jjordening/git/thunderhill_data/dataset_sim_000_km_few_laps/'+data['center'].apply(lambda x: x.strip())
+    data1 = pd.read_csv('/home/jjordening/git/thunderhill_data/dataset_sim_001_km_320x160/driving_log.csv', 
                        header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
-    data1['center'] = '/home/jendrik/git/thunderhill_data/dataset_sim_001_km_320x160/'+data1['center'].apply(lambda x: x.strip())
+    data1['center'] = '/home/jjordening/git/thunderhill_data/dataset_sim_001_km_320x160/'+data1['center'].apply(lambda x: x.strip())
     data1[['positionX','positionY','positionZ']] = data1['position'].apply(retrieveVectors)
     data1[['orientationX','orientationY','orientationZ']] = data1['orientation'].apply(retrieveVectors)
-    data2 = pd.read_csv('/home/jendrik/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/driving_log.csv', 
+    data2 = pd.read_csv('/home/jjordening/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/driving_log.csv', 
                        header = None, names=['center','left', 'right', 'steering','throttle', 'brake', 'speed', 'position', 'orientation'])
-    data2['center'] = '/home/jendrik/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/'+data2['center'].apply(lambda x: x.strip())
+    data2['center'] = '/home/jjordening/git/thunderhill_data/dataset_sim_002_km_320x160_recovery/'+data2['center'].apply(lambda x: x.strip())
     data2[['positionX','positionY','positionZ']] = data2['position'].apply(retrieveVectors)
     data2[['orientationX','orientationY','orientationZ']] = data2['orientation'].apply(retrieveVectors)
     #data['right'] = '../simulator/data/data/'+data['right'].apply(lambda x: x.strip())
@@ -179,8 +179,6 @@ def main():
         print('%s Mean:%.3f Std:%.3f' %(col, mean, std))
     
     dataNew = shuffle(dataNew, random_state=0)
-    plt.figure(1, figsize=(8,4))
-    plt.hist(dataNew['steering'], bins =31)
     
     #plt.show()
     
@@ -237,6 +235,7 @@ def main():
         xC = Activation('elu')(xC)
         print(xC.get_shape())
         xOut = Flatten()(xC)
+        print(xOut.get_shape())
         
         """xVectorInp = Input(shape = (6,), name='input_3')
         xVector = Dense(100)(xVectorInp)

@@ -191,14 +191,6 @@ def main():
     valGenerator.__next__()
     print("Time to build validation batch: ", time.time()-t)
     rnn = RNN(batch[0].shape, 1)
-    
-    model = load_model('initModel.h5', custom_objects={'customLoss':customLoss})
-    prevWeights = []
-    for layer in model.layers:
-        prevWeights.append(layer.get_weights())
-    print(prevWeights[1])
-    
-    
     trainer = Trainer(rnn, 1e-4)
     
     valErrorComp = 2
