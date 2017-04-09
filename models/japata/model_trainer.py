@@ -40,7 +40,7 @@ Parameters = namedtuple('Parameters', [
 
 params = Parameters(
     # General settings
-    batch_size=64, max_epochs=100, output_dims=1,
+    batch_size=64, max_epochs=5, output_dims=1,
     # Model settings
     l2_reg=0.0, keep_prob=0.5,
     # Optimizer settings
@@ -50,33 +50,9 @@ params = Parameters(
   )
 
 
-path = os.getcwd() + '/'
-# polysync_data = utils.load_polysync_paths()
-#
-# polysync_paths, polysync_angs = utils.keep_n_percent_of_data_where(
-#     data=polysync_data['center'],
-#     values=polysync_data['angles'],
-#     condition_lambda=lambda x: abs(x) < 2e-1,
-#     percent=0.4
-#   )
-# polysync_angs /= np.max(polysync_angs)
-#
-# sim_paths, sim_angs = utils.concat_all_cameras(
-#     data=utils.load_data(path + 'thunderhill_data/dataset_sim_001_km_320x160/', 'driving_log.csv'),
-#     condition_lambda=lambda x: abs(x) < 1e-5,
-#     keep_percent=0.3,
-#     drop_camera='both'
-#   )
-#
-# sim_rec_paths, sim_rec_angs = utils.concat_all_cameras(
-#     data=utils.load_data(path + 'thunderhill_data/dataset_sim_002_km_320x160_recovery/', 'driving_log.csv'),
-#     condition_lambda=lambda x: abs(x) < 1e-5,
-#     keep_percent=0.3,
-#     drop_camera='both'
-#   )
+data = utils.load_polysync_paths('C:\\Users\\jaket\\Desktop')
 
-data = utils.load_data(path + 'thunderhill_data/dataset_sim_003_km_320x160/', 'driving_log.csv')
-sim3_paths, sim3_vals = data['center'], data['speed']
+sim3_paths, sim3_vals = data['center'], data['angles']
 
 train_paths, val_paths, train_angs, val_angs = utils.split_data(
     features=sim3_paths,
@@ -117,21 +93,21 @@ filepath = 'models/model_{epoch:03d}_{val_loss:0.5f}.h5'
 callbacks = [
     EarlyStopping(monitor='val_loss', min_delta=params.min_delta, patience=params.patience,
                   mode='min'),
-    ModelCheckpoint(filepath=filepath, monitor='val_loss', save_best_only=True,  mode='min'),
-    TensorBoard(log_dir='./logs', histogram_freq=0, write_graph=True)
+    ModelCheckpoint(filepath=filepath, monitor='val_loss', save_best_only=True,  mode='min')
+    # TensorBoard(log_dir='./logs', histogram_freq=0, write_graph=True)
   ]
 
 history = model.fit_generator(
     generator=utils.batch_generator(ims=train_paths, angs=train_angs, batch_size=params.batch_size,
                                     augmentor=utils.augment_image, kwargs=params.kwargs),
-    samples_per_epoch=25600,
+    samples_per_epoch=12800,
     nb_epoch=params.max_epochs,
     # Halve the batch size, as `utils.val_augmentor` doubles the batch size by flipping the images and angles
-    validation_data=utils.batch_generator(ims=val_paths, angs=val_angs, batch_size=params.batch_size//2,
-                                          augmentor=utils.val_augmentor, validation=True),
+    validation_data=utils.batch_generator(ims=val_paths, angs=val_angs, batch_size=params.batch_size,
+                                          augmentor=None, validation=True),
     # Double the size of the validation set, as we are flipping the images to balance the right/left
     # distribution.
-    nb_val_samples=2*val_angs.shape[0],
+    nb_val_samples=val_angs.shape[0],
     callbacks=callbacks
   )
 
