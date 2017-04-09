@@ -69,15 +69,15 @@ def cg23(params):
     model = Sequential([
         Lambda(lambda x: x/255. - 0.5, input_shape=(160, 320, 3)),
 
-        Convolution2D(3, 1, 1),
+        Conv2D(3, 1, 1),
 
-        Convolution2D(24, 8, 8, activation='elu', subsample=(4, 4)),
-        Convolution2D(36, 5, 5, activation='elu', subsample=(2, 2)),
-        Convolution2D(48, 2, 2, activation='elu', subsample=(2, 2)),
-        Convolution2D(64, 3, 3, activation='elu'),
-        Convolution2D(64, 3, 3, activation='elu'),
-        Convolution2D(128, 3, 3, activation='elu'),
-        Convolution2D(128, 3, 3, activation='elu'),
+        Conv2D(24, 8, 8, activation='elu', subsample=(4, 4)),
+        Conv2D(36, 5, 5, activation='elu', subsample=(2, 2)),
+        Conv2D(48, 2, 2, activation='elu', subsample=(2, 2)),
+        Conv2D(64, 3, 3, activation='elu'),
+        Conv2D(64, 3, 3, activation='elu'),
+        Conv2D(128, 3, 3, activation='elu'),
+        Conv2D(128, 3, 3, activation='elu'),
 
         Flatten(),
 
@@ -87,41 +87,6 @@ def cg23(params):
         Dense(params.output_dims)
     ])
     return model
-
-
-def dev(params):
-    img_input = Input(shape=(160, 320, 3), name='img_input')
-    x = Conv2D(3, 1)(img_input)
-    # 160x320x3
-    x = SeparableConv2D(24, 8, depth_multiplier=6, strides=4, activation='elu')(x)
-    # 78x158x24
-    x = Conv2D(36, 5, padding='valid', strides=2, activation='elu')(x)
-    # 37x77x36
-    x = Conv2D(48, 5, padding='valid', strides=2, activation='elu')(x)
-    # 16x36x48
-    x = Conv2D(64, 3, padding='valid', activation='elu')(x)
-    # 7x17x64
-    x = Conv2D(64, 3, padding='valid', activation='elu')(x)
-    # 3x13x64
-    x = Conv2D(64, 3, padding='valid', activation='elu')(x)
-    x = Dropout(params.keep_prob)(x)
-    # 1x11x64
-    x = Flatten()(x)
-
-    other_input = Input(shape=(8,), name='other_input')
-    xx = Dense(50, activation='elu')(other_input)
-    xx = Dense(100, activation='elu')(xx)
-    x = keras.layers.concatenate([x, xx])
-
-    x = Dense(256, activation='elu')(x)
-    x = Dense(64, activation='elu')(x)
-    x = Dense(10, activation='elu')(x)
-    predictions = Dense(params.output_dims)(x)
-
-    model = Model(inputs=[img_input, other_input], outputs=predictions)
-    return model
-
-
 
 
 def evolutionary_feature_extractor():
