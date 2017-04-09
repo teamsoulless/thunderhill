@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
+from PIL import Image
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from decorators import n_images, staticVars
@@ -11,8 +12,8 @@ from decorators import n_images, staticVars
 def setGlobals():
     global _color_space, _reshape, _ycrop, _src, _dst
 
-    _color_space = {'src': cv2.COLOR_HSV2RGB, 'dst': cv2.COLOR_RGB2HSV}
-    _reshape = {'src': (320, 160), 'dst': (320, 160)}
+    _color_space = {'src': None, 'dst': None}
+    _reshape = {'src': (960, 480), 'dst': (320, 160)}
     _ycrop = {'top': None, 'bottom': None}
     _src = np.array([
         [110, 90],
@@ -32,35 +33,26 @@ def getGlobals():
     return _color_space, _reshape, _ycrop, _src, _dst
 
 
-def load_polysync_paths():
-    cwd = os.getcwd() + '/thunderhill_data/'
+def load_polysync_paths(base_dir='/home/carnd/CarND-Simulator/japata/data/'):
     data_files = [
-        {'path': 'dataset_polysync_1464466368552019/', 'frame_ranges': [(400, 3000), (3550, 6550)]},
-        # {'path': 'dataset_polysync_1464470620356308/', 'frame_ranges': []},
-        {'path': 'dataset_polysync_1464552951979919/', 'frame_ranges': [(350, 1950), (3100, 4550)]},
+        '1045',
+        '1050',
+        '1426',
+        '1516'
       ]
 
     images = np.array([])
     angles = np.array([])
     for file in data_files:
-        data_folder = cwd + file['path']
-        data = pd.read_csv(data_folder + 'output.txt')
-        new_header = data.loc[0]
-        data = data[1:]
-        data.rename(columns=new_header)
+        data_folder = os.path.join(base_dir, file)
+        data = pd.read_csv(os.path.join(data_folder, 'output.txt'), header=0)
 
-        filtered_angs = np.array([])
-        filtered_ims = np.array([])
-        for start, stop in file['frame_ranges']:
-            filtered_angs = np.concatenate((filtered_angs, np.array(data['steering'])[start:stop]))
-            filtered_ims = np.concatenate((filtered_ims, np.array(data['path'])[start:stop]))
+        angs = np.array([float(ang) for ang in np.array(data['steering'])])
+        ims = np.array([os.path.join(data_folder, im) for im in np.array(data['path'])])
 
-        filtered_angs = np.array([float(ang) for ang in filtered_angs])
-        filtered_ims = np.array([data_folder + 'P' + im for im in filtered_ims])
-
-        images = np.concatenate((images, filtered_ims))
-        angles = np.concatenate((angles, filtered_angs))
-    return {'center': images, 'angles': angles}
+    images = np.concatenate((images, ims))
+    angles = np.concatenate((angles, angs))
+    return {'center': np.array(images), 'angles': np.array(angles)}
 
 
 def load_data(path, file):
@@ -248,7 +240,7 @@ def process_image(im):
         y_bottom = _reshape['src'][1] - (0 or _ycrop['bottom'])
         im = im[y_top:y_bottom, 0:_reshape['src'][0]]
 
-    if _color_space is not None:
+    if _color_space['src'] is not None:
         im = cv2.cvtColor(im, _color_space['dst'])
 
     if _src is not None and _dst is not None:
@@ -358,7 +350,7 @@ def add_random_shadow(im):
     return im.astype(np.uint8)
 
 
-def random_image_shift(im, ang, x_shift=40, y_shift=3, per_pix_adj=5e-3):
+def random_image_shift(im, ang, x_shift=40, y_shift=3, per_pix_adj=1.25e-2):
     """
     Randomly shift the image left/right and up/down.
 
@@ -438,8 +430,8 @@ def augment_image(image, value, prob, im_normalizer=process_image):
         return image, value
 
     # Shifts/Affine transforms
-    shadowed = add_random_shadow(image)
-    rotated = random_image_rotation(shadowed)
+    # shadowed = add_random_shadow(image)
+    rotated = random_image_rotation(image)
     shifted, value = random_image_shift(rotated, value)
 
     augmented = im_normalizer(shifted)
@@ -513,14 +505,16 @@ def batch_generator(ims, angs, batch_size, augmentor, kwargs={}, validation=Fals
             # Load the images from their paths
             loaded_ims = []
             for im_path in batch_x:
-                im = cv2.cvtColor(cv2.imread(im_path), cv2.COLOR_BGR2RGB)
+                im = Image.frombytes('RGB', [960, 480], open(im_path, 'rb').read(), 'raw')
+                im = np.array(im)
                 loaded_ims.append(im)
 
             batch_x = np.array(loaded_ims)
-            batch_y /= 5.0
-
             # Augment the images with the given function
-            batch_x, batch_y = augmentor(batch_x, batch_y, **kwargs)
+            if augmentor is not None:
+                batch_x, batch_y = augmentor(batch_x, batch_y, **kwargs)
+            else:
+                batch_x = np.array([process_image(im) for im in batch_x])
             yield batch_x, batch_y
 
 
