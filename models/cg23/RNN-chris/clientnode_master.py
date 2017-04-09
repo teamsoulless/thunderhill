@@ -49,12 +49,15 @@ def normalize_vector(xVec):
 
 
 def copyImage(byte_array, imageSize):
-	if imageSize > 8:
-		resize(byte_array, imageSize)
-		image = []
-		for i in range(imageSize):
-			image.append(byte_array[i])
-		return array.array('B', image).tostring()
+	#if imageSize > 8:
+	#	resize(byte_array, imageSize)
+	image = []
+	#	for i in range(imageSize):
+	#		image.append(byte_array[i])
+	#	return array.array('B', image).tostring()
+	arr = np.asarray(byte_array)
+    aa = arr.ctypes.data_as(ctypes.POINTER(ctypes.c_ubyte*len(byte_array)))
+	for v in aa.contents: image.append(v)
 	return byte_array
 
 

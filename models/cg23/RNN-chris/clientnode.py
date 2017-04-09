@@ -54,7 +54,7 @@ def make_prediction():
 						print("this is debug mode, switch it to False")
 					else:
 						img = np.array(Image.frombytes('RGB', [960, 480], jpeg_image, 'raw'))
-						img = cv2.resize(img, (320, 160))[::-1,::-1]
+						img = cv2.resize(img, (320, 160))[::-1,:,:]
 						transformed_image_array = img[:, :, :]
 						transformed_image_array = (transformed_image_array.astype(np.float32))
 					steering_angle, throttle, brake = model.predict(transformed_image_array)
