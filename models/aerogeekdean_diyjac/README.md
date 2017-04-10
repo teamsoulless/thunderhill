@@ -58,7 +58,7 @@ The training tools works in place of the drive.py module that you use previously
 | continuousTrainer.py | Continuous Trainer | Maybe Preprocessing? | python continuousTrainer.py model.json |
 
 ## Instructions and Directions
-####WARNING: One of the most important things to do during development is to make backups (model.py, model.json and model.h5) between iterations, so you may back track to a known good version.  If you have not done this yet, set up a github repository and commit often.  I cannot tell you how many times this saved my ass!
+#### WARNING: One of the most important things to do during development is to make backups (model.py, model.json and model.h5) between iterations, so you may back track to a known good version.  If you have not done this yet, set up a github repository and commit often.  I cannot tell you how many times this saved my ass!
 
 #####  1. Edit the pygameJoyDriveInterface.py and continuousTrainer.py.  Update any preprocessing you require for your model.
 
