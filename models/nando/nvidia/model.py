@@ -83,7 +83,6 @@ if __name__ == '__main__':
     print('OUTPUT       : {}'.format(args.output))
     print('-------------')
 
-    # TODO: abstract method to normalize speed.
     df_train, df_val = getDataFromThunderhill(args.dataset, split=True, randomize=True, balance=True)
     print('TRAIN:', len(df_train))
     print('VALIDATION:', len(df_val))
@@ -121,6 +120,3 @@ if __name__ == '__main__':
             board
         ]
     )
-
-    # for X, y in generate_thunderhill_batches(df_train, args):
-    #     print(X.shape, y.shape)
