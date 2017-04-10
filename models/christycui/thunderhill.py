@@ -10,20 +10,15 @@ import random
 import utm
 
 # read in from different folders
-#path = "/Volumes/TOSHIBA EXT/"
 path = "/Volumes/TOSHIBA EXT/thunderhill-day1-data/1538/"
 slow = 'thunderhill-day1-data/1543/'
-# medium = ['1538','1610','1620','1645','1702','1708']
+medium = ['1538','1610','1620','1645','1702','1708']
 samples = []
 with open(path+'output_processed.txt','r') as log_1:
   reader_1 = csv.reader(log_1)
-  #reader_2 = csv.reader(log_2)
   next(reader_1, None)
-  #next(reader_2, None)
   for line in reader_1:
     samples.append(line)
-  #for row in reader_2:
-  #  samples.append(row)
 
 from sklearn.model_selection import train_test_split
 train_samples, validation_samples = train_test_split(samples, test_size=0.2)
@@ -59,27 +54,11 @@ def generator(samples, batch_size=16):
         imageArr[i*2] = center_image
         speedArr[i*2] = speed
         outputArr[i*2] = np.array([center_angle,throttle])
-        #input_all.append([center_image,speed])
+
         center_image_T = adjust_brightness(center_image)
         imageArr[i*2+1] = center_image_T
         speedArr[i*2+1] = speed
         outputArr[i*2+1] = np.array([center_angle,throttle])
-        # input_all.append(center_image_T,speed])
-
-        #single_output = [center_angle,throttle]
-        #output.extend([single_output, single_output])
-
-      #X_train = np.array(input_all)
-      #y_train = np.array(output).reshape([-1,2])
-      #print(X_train.shape)
-      # add flipped images and angles to avoid bias
-      # print(input_all)
-      #flipped = np.array([np.array([np.fliplr(image),speed]) for [image,speed] in input_all])
-      #print(images_flipped.shape)
-      #angles_flipped = np.array([[-angle,throttle] for [angle,throttle] in output]).reshape([-1,2])
-      #X_train = np.concatenate((X_train, flipped), axis=0)
-      #X_train = np.array(X_train).reshape(-1,2)
-      #y_train = np.concatenate((y_train, angles_flipped), axis=0)
 
       yield ({'inputImg': imageArr, 'input_speed': speedArr}, {'output': outputArr})
 
