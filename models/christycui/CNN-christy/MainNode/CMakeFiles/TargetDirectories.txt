@@ -1,0 +1,3 @@
+/media/nadia/Seagate Expansion Drive/CNN-christy/MainNode/CMakeFiles/rebuild_cache.dir
+/media/nadia/Seagate Expansion Drive/CNN-christy/MainNode/CMakeFiles/edit_cache.dir
+/media/nadia/Seagate Expansion Drive/CNN-christy/MainNode/CMakeFiles/MainNode.dir
