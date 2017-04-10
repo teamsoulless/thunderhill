@@ -21,17 +21,30 @@ This will generate a coorindates.html file that will render a google map image o
 Below are the results from each of our test laps for the first day at Thunderhill West:
 
 [thunderhill-day1/1538/coordinates.html](thunderhill-day1/1538/coordinates.html)
+
 [thunderhill-day1/1543/coordinates.html](thunderhill-day1/1543/coordinates.html)
+
 [thunderhill-day1/1550/coordinates.html](thunderhill-day1/1550/coordinates.html)
+
 [thunderhill-day1/1605/coordinates.html](thunderhill-day1/1605/coordinates.html)
+
 [thunderhill-day1/1610/coordinates.html](thunderhill-day1/1610/coordinates.html)
+
 [thunderhill-day1/1620/coordinates.html](thunderhill-day1/1620/coordinates.html)
+
 [thunderhill-day1/1635/coordinates.html](thunderhill-day1/1635/coordinates.html)
+
 [thunderhill-day1/1639/coordinates.html](thunderhill-day1/1639/coordinates.html)
+
 [thunderhill-day1/1645/coordinates.html](thunderhill-day1/1645/coordinates.html)
+
 [thunderhill-day1/1654/coordinates.html](thunderhill-day1/1654/coordinates.html)
+
 [thunderhill-day1/1702/coordinates.html](thunderhill-day1/1702/coordinates.html)
+
 [thunderhill-day1/1708/coordinates.html](thunderhill-day1/1708/coordinates.html)
+
 [thunderhill-day1/1711/coordinates.html](thunderhill-day1/1711/coordinates.html)
+
 [thunderhill-day1/1715/coordinates.html](thunderhill-day1/1715/coordinates.html)
 
